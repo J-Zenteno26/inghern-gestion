@@ -1,0 +1,16 @@
+.metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }.metrics--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }.metric { position: relative; min-height: 8.8rem; padding: 1.2rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: white; overflow: hidden; box-shadow: var(--shadow-sm); }
+.metric::before { position: absolute; top: 0; right: 0; width: 4.2rem; height: 4.2rem; border-radius: 0 0 0 100%; background: var(--info-soft); content: ''; }.metric--naranjo::before { background: var(--commercial-soft); }.metric--petroleo::before { background: var(--identity-soft); }
+.metric--success::before { background: var(--success-soft); }
+.metric--with-icon { padding-right: 4.15rem; }
+.metric__icon { position: absolute; z-index: 1; top: .8rem; right: .8rem; width: 2rem; height: 2rem; border-radius: .62rem; background: rgb(255 255 255 / 72%); color: var(--steel-600); display: grid; place-items: center; box-shadow: 0 4px 12px rgb(17 58 82 / 8%); }
+.metric--petroleo .metric__icon { color: var(--petrol-800); }
+.metric--naranjo .metric__icon { color: var(--orange-600); }
+.metric__label { color: var(--muted); font-size: .78rem; font-weight: 600; }.metric__value { margin-top: .45rem; font-family: 'Rubik'; font-size: 2.1rem; font-weight: 700; }.metric__detail { color: var(--steel-600); font-size: .74rem; }
+
+@media (max-width: 900px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+    .metrics { grid-template-columns: 1fr; }
+}

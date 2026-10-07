@@ -1,9 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&family=Rubik:wght@500;600;700&display=swap');
 @import 'tailwindcss';
+
+@import './base/tokens.css';
+@import './base/reset.css';
+@import './base/layout.css';
+
+@import './components/navigation.css';
+@import './components/components.css';
+@import './components/buttons.css';
+@import './components/forms.css';
+@import './components/panels.css';
+@import './modules/services.css';
+@import './components/kpi.css';
+@import './modules/dashboard.css';
+@import './components/tables.css';
+@import './components/badges.css';
+@import './components/filters.css';
+@import './components/states.css';
+
+@import './modules/quotes.css';
+@import './modules/invoices.css';
+@import './modules/payments.css';
+@import './modules/auth.css';
+@import './modules/organizations.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
-
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
-}
+@source '../**/*.blade.php';
+@source '../**/*.js';

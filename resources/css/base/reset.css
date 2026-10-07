@@ -1,0 +1,7 @@
+* { box-sizing: border-box; }
+html { color-scheme: light; scroll-behavior: smooth; }
+body { margin: 0; background: var(--canvas); color: var(--ink-950); font-family: 'Open Sans', system-ui, sans-serif; font-size: .925rem; line-height: 1.55; }
+button, input, select, textarea { font: inherit; } a { color: inherit; text-decoration: none; }
+h1, h2, h3, h4 { margin: 0; font-family: 'Rubik', system-ui, sans-serif; line-height: 1.18; }
+p { margin: 0; } [hidden] { display: none !important; }
+

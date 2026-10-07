@@ -1,0 +1,7 @@
+.dashboard-grid { display: grid; grid-template-columns: 1.35fr .9fr; gap: 1rem; }
+
+@media (max-width: 900px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
+}
+
+

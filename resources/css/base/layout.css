@@ -1,0 +1,11 @@
+.app-main { width: min(calc(100% - 2rem), var(--content)); margin: 0 auto; padding: 2rem 0 4rem; }
+
+@media (max-width: 900px) {
+    .detail-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+    .app-main { width: min(calc(100% - 1.2rem), var(--content)); padding-top: 1.2rem; }
+}
+
+

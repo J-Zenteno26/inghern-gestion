@@ -1,0 +1,4 @@
+.ui-panel { border: 1px solid var(--border); border-radius: var(--radius-lg); background: white; box-shadow: var(--shadow-sm); overflow: hidden; }.ui-panel + .ui-panel { margin-top: 1rem; }
+.ui-panel__header { min-height: 4rem; padding: 1rem 1.2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }.ui-panel__title { font-size: 1rem; }.ui-panel__subtitle { margin-top: .2rem; color: var(--muted); font-size: .76rem; }
+.ui-panel__body { padding: 1.2rem; }.ui-panel__body--flush { padding: 0; }.ui-panel__footer { padding: .9rem 1.2rem; border-top: 1px solid var(--border); background: var(--steel-50); }
+
