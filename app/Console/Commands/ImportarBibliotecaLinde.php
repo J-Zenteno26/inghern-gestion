@@ -1,53 +1,28 @@
 <?php
 
-
-
 namespace App\Console\Commands;
 
-
-
 use App\Models\Cotizacion;
-
 use App\Models\Documento;
-
 use App\Models\DocumentoVinculo;
-
 use App\Models\Factura;
-
 use App\Models\OrdenCompra;
-
 use App\Models\Planta;
-
 use App\Models\User;
-
 use Illuminate\Console\Command;
-
 use Illuminate\Database\Eloquent\Model;
-
 use Illuminate\Support\Collection;
-
 use Illuminate\Support\Facades\DB;
-
 use Illuminate\Support\Facades\File;
-
 use Illuminate\Support\Facades\Storage;
-
 use Illuminate\Support\Str;
-
 use RuntimeException;
-
 use Symfony\Component\HttpFoundation\File\File as SymfonyFile;
-
 use Throwable;
-
 use ZipArchive;
 
-
-
 class ImportarBibliotecaLinde extends Command
-
 {
-
     protected $signature = 'inghern:importar-biblioteca-linde
 
         {zip : Ruta al archivo ZIP histórico de Linde}
@@ -56,34 +31,19 @@ class ImportarBibliotecaLinde extends Command
 
         {--commit : Confirma la escritura de documentos y vínculos}';
 
-
-
     protected $description = 'Previsualiza o importa la documentación histórica de Linde a la Biblioteca';
-
-
 
     private int $importados = 0;
 
-
-
     private int $existentes = 0;
-
-
 
     private int $excluidos = 0;
 
-
-
     private int $revisar = 0;
-
-
 
     private int $errores = 0;
 
-
-
     public function handle(): int
-
     {
 
         $zipPath = $this->resolveZipPath((string) $this->argument('zip'));
@@ -94,21 +54,15 @@ class ImportarBibliotecaLinde extends Command
 
         }
 
-
-
         $usuario = $this->resolveUser();
 
         if ($this->option('commit') && $usuario === null) {
 
             $this->error('Con --commit debes indicar --user= con el ID de un usuario existente.');
 
-
-
             return self::FAILURE;
 
         }
-
-
 
         $zip = new ZipArchive;
 
@@ -116,17 +70,11 @@ class ImportarBibliotecaLinde extends Command
 
             $this->error('El archivo indicado no es un ZIP válido o está corrupto.');
 
-
-
             return self::FAILURE;
 
         }
 
-
-
         $temporal = null;
-
-
 
         try {
 
@@ -148,21 +96,15 @@ class ImportarBibliotecaLinde extends Command
 
             $this->newLine();
 
-
-
             $archivos = $this->scanZip($zip);
 
             if ($archivos === []) {
 
                 $this->error('No se encontraron archivos dentro de carpetas LINDE/COT-XX-...');
 
-
-
                 return self::FAILURE;
 
             }
-
-
 
             $cotizaciones = $this->cotizacionesByNumber();
 
@@ -173,8 +115,6 @@ class ImportarBibliotecaLinde extends Command
                 File::ensureDirectoryExists($temporal);
 
             }
-
-
 
             foreach ($archivos as $numero => $grupo) {
 
@@ -198,8 +138,6 @@ class ImportarBibliotecaLinde extends Command
 
             }
 
-
-
             $this->newLine();
 
             $this->table(
@@ -222,8 +160,6 @@ class ImportarBibliotecaLinde extends Command
 
             );
 
-
-
             if (! $this->option('commit')) {
 
                 $this->info('Dry-run finalizado. No se crearon documentos, archivos ni vínculos.');
@@ -232,15 +168,11 @@ class ImportarBibliotecaLinde extends Command
 
             }
 
-
-
             return $this->errores > 0 ? self::FAILURE : self::SUCCESS;
 
         } finally {
 
             $zip->close();
-
-
 
             if ($temporal !== null && File::isDirectory($temporal)) {
 
@@ -252,10 +184,7 @@ class ImportarBibliotecaLinde extends Command
 
     }
 
-
-
     private function resolveZipPath(string $argument): ?string
-
     {
 
         $candidate = $this->isAbsolutePath($argument)
@@ -266,28 +195,19 @@ class ImportarBibliotecaLinde extends Command
 
         $resolved = realpath($candidate);
 
-
-
         if ($resolved === false || ! is_file($resolved) || ! is_readable($resolved)) {
 
             $this->error('El ZIP no existe o no puede leerse: '.$candidate);
-
-
 
             return null;
 
         }
 
-
-
         return $resolved;
 
     }
 
-
-
     private function resolveUser(): ?User
-
     {
 
         $userId = $this->option('user');
@@ -298,29 +218,19 @@ class ImportarBibliotecaLinde extends Command
 
         }
 
-
-
         return User::query()->find((int) $userId);
 
     }
 
-
-
     /**
-
      * @return array<int, array{folder: string, files: array<int, array{path: string, name: string, size: int, extension: string, type: string}>}>
-
      */
-
     private function scanZip(ZipArchive $zip): array
-
     {
 
         $groups = [];
 
         $allowedExtensions = config('filesystems.document_uploads.allowed_extensions', []);
-
-
 
         for ($index = 0; $index < $zip->numFiles; $index++) {
 
@@ -332,8 +242,6 @@ class ImportarBibliotecaLinde extends Command
 
             }
 
-
-
             $path = str_replace('\\\\', '/', (string) $stat['name']);
 
             if (str_ends_with($path, '/')) {
@@ -342,21 +250,15 @@ class ImportarBibliotecaLinde extends Command
 
             }
 
-
-
             if (! $this->isSafeZipPath($path)) {
 
                 $this->line('[EXCLUIDO] Ruta insegura: '.$path);
 
                 $this->excluidos++;
 
-
-
                 continue;
 
             }
-
-
 
             $name = basename($path);
 
@@ -366,13 +268,9 @@ class ImportarBibliotecaLinde extends Command
 
                 $this->excluidos++;
 
-
-
                 continue;
 
             }
-
-
 
             $extension = Str::lower(pathinfo($name, PATHINFO_EXTENSION));
 
@@ -382,13 +280,9 @@ class ImportarBibliotecaLinde extends Command
 
                 $this->excluidos++;
 
-
-
                 continue;
 
             }
-
-
 
             if (! preg_match('#^LINDE/(COT-(\d{2})(?:-[^/]+)?)/#i', $path, $matches)) {
 
@@ -396,13 +290,9 @@ class ImportarBibliotecaLinde extends Command
 
                 $this->revisar++;
 
-
-
                 continue;
 
             }
-
-
 
             $number = (int) $matches[2];
 
@@ -412,13 +302,9 @@ class ImportarBibliotecaLinde extends Command
 
                 $this->revisar++;
 
-
-
                 continue;
 
             }
-
-
 
             $groups[$number] ??= ['folder' => $matches[1], 'files' => []];
 
@@ -438,26 +324,16 @@ class ImportarBibliotecaLinde extends Command
 
         }
 
-
-
         ksort($groups);
-
-
 
         return $groups;
 
     }
 
-
-
     /**
-
      * @return array<int, Collection<int, Cotizacion>>
-
      */
-
     private function cotizacionesByNumber(): array
-
     {
 
         return Cotizacion::query()
@@ -476,16 +352,10 @@ class ImportarBibliotecaLinde extends Command
 
     }
 
-
-
     /**
-
      * @param  array<int, array{path: string, name: string, size: int, extension: string, type: string}>  $files
-
      * @param  Collection<int, Cotizacion>  $matches
-
      */
-
     private function processFolder(
 
         ZipArchive $zip,
@@ -506,8 +376,6 @@ class ImportarBibliotecaLinde extends Command
 
         $this->line('COT-'.str_pad((string) $number, 2, '0', STR_PAD_LEFT)." · {$folder}");
 
-
-
         if ($matches->count() !== 1) {
 
             $codes = $matches->pluck('codigo')->implode(', ');
@@ -522,24 +390,17 @@ class ImportarBibliotecaLinde extends Command
 
             $this->revisar += count($files);
 
-
-
             foreach ($files as $file) {
 
                 $this->line("  [REVISAR] {$file['name']} · {$this->typeLabel($file['type'])} · {$file['size']} bytes");
 
             }
 
-
-
             return;
 
         }
 
-
-
         /** @var Cotizacion $cotizacion */
-
         $cotizacion = $matches->first();
 
         $plantas = $this->documentPlants($cotizacion);
@@ -552,18 +413,13 @@ class ImportarBibliotecaLinde extends Command
 
             : array_values(array_diff($expectedPlantIds, $plantas->pluck('id')->all()));
 
-
-
         $this->info("  Cotización encontrada: #{$cotizacion->getKey()} · {$cotizacion->codigo}");
 
         $this->line("  Organización: #{$cotizacion->cliente->getKey()} · {$cotizacion->cliente->nombre_display}");
 
-
-
         if ($plantas->count() === 1) {
 
             /** @var Planta $planta */
-
             $planta = $plantas->first();
 
             $this->line("  Planta documental: #{$planta->getKey()} · {$planta->nombre}");
@@ -586,8 +442,6 @@ class ImportarBibliotecaLinde extends Command
 
         }
 
-
-
         if ($missingPlantIds !== []) {
 
             $this->warn('  [REVISAR] Faltan plantas esperadas para esta cotización multiplanta: '.implode(', ', $missingPlantIds));
@@ -596,28 +450,19 @@ class ImportarBibliotecaLinde extends Command
 
         }
 
-
-
         foreach ($files as $file) {
 
             $this->processFile($zip, $file, $cotizacion, $plantas, $usuario, $temporal);
 
         }
 
-
-
         $this->newLine();
 
     }
 
-
-
     /**
-
      * @param  array{path: string, name: string, size: int, extension: string, type: string}  $file
-
      */
-
     private function processFile(
 
         ZipArchive $zip,
@@ -650,21 +495,15 @@ class ImportarBibliotecaLinde extends Command
 
             ->exists();
 
-
-
         if ($existing) {
 
             $this->line("  [YA EXISTE] {$file['name']} · {$this->typeLabel($file['type'])} · {$file['size']} bytes");
 
             $this->existentes++;
 
-
-
             return;
 
         }
-
-
 
         $links = [$cotizacion->cliente, $cotizacion];
 
@@ -673,8 +512,6 @@ class ImportarBibliotecaLinde extends Command
             $links[] = $planta;
 
         }
-
-
 
         $review = null;
 
@@ -692,8 +529,6 @@ class ImportarBibliotecaLinde extends Command
 
         }
 
-
-
         if ($file['type'] === 'factura_respaldo') {
 
             $factura = $this->matchingInvoice($cotizacion, $file['name']);
@@ -710,8 +545,6 @@ class ImportarBibliotecaLinde extends Command
 
         }
 
-
-
         $status = $review ? '[REVISAR]' : '[NUEVO]';
 
         $this->line("  {$status} {$file['name']} · {$this->typeLabel($file['type'])} · {$file['size']} bytes");
@@ -726,15 +559,11 @@ class ImportarBibliotecaLinde extends Command
 
         $this->line('    Vínculos: '.collect($links)->map(fn (Model $model) => $this->linkLabel($model))->implode(' | '));
 
-
-
         if (! $this->option('commit')) {
 
             return;
 
         }
-
-
 
         try {
 
@@ -754,16 +583,10 @@ class ImportarBibliotecaLinde extends Command
 
     }
 
-
-
     /**
-
      * @param  array{path: string, name: string, size: int, extension: string, type: string}  $file
-
      * @param  array<int, Model>  $links
-
      */
-
     private function importFile(
 
         ZipArchive $zip,
@@ -786,8 +609,6 @@ class ImportarBibliotecaLinde extends Command
 
         $target = fopen($temporaryPath, 'xb');
 
-
-
         if (! is_resource($source) || ! is_resource($target)) {
 
             if (is_resource($source)) {
@@ -802,20 +623,14 @@ class ImportarBibliotecaLinde extends Command
 
             }
 
-
-
             throw new RuntimeException('No fue posible extraer el archivo en el directorio temporal controlado.');
-
         }
-
-
 
         try {
 
             if (stream_copy_to_stream($source, $target) === false) {
 
                 throw new RuntimeException('No fue posible extraer el contenido del ZIP.');
-
             }
 
         } finally {
@@ -826,21 +641,14 @@ class ImportarBibliotecaLinde extends Command
 
         }
 
-
-
         $actualSize = filesize($temporaryPath);
 
         if ($actualSize === false || $actualSize !== $file['size']) {
 
             File::delete($temporaryPath);
 
-
-
             throw new RuntimeException('El tamaño extraído no coincide con el informado por el ZIP.');
-
         }
-
-
 
         $physicalName = Str::uuid().'.'.$file['extension'];
 
@@ -852,13 +660,8 @@ class ImportarBibliotecaLinde extends Command
 
             File::delete($temporaryPath);
 
-
-
             throw new RuntimeException('No fue posible volver a leer el archivo temporal.');
-
         }
-
-
 
         try {
 
@@ -870,19 +673,12 @@ class ImportarBibliotecaLinde extends Command
 
         }
 
-
-
         if (! $stored) {
 
             File::delete($temporaryPath);
 
-
-
             throw new RuntimeException('No fue posible almacenar el documento en el disk privado.');
-
         }
-
-
 
         try {
 
@@ -914,8 +710,6 @@ class ImportarBibliotecaLinde extends Command
 
                 ]);
 
-
-
                 foreach (collect($links)->unique(fn (Model $model) => $model->getMorphClass().':'.$model->getKey()) as $link) {
 
                     DocumentoVinculo::firstOrCreate([
@@ -936,10 +730,7 @@ class ImportarBibliotecaLinde extends Command
 
             Storage::disk('documentos')->delete($storagePath);
 
-
-
             throw $throwable;
-
         } finally {
 
             File::delete($temporaryPath);
@@ -948,15 +739,10 @@ class ImportarBibliotecaLinde extends Command
 
     }
 
-
-
     private function documentType(string $name): string
-
     {
 
         $normalized = Str::upper(Str::ascii(pathinfo($name, PATHINFO_FILENAME)));
-
-
 
         if (
 
@@ -972,15 +758,11 @@ class ImportarBibliotecaLinde extends Command
 
         }
 
-
-
         if (preg_match('/^OC(?:[-\_\s]|$)/', $normalized) === 1) {
 
             return 'orden_compra';
 
         }
-
-
 
         if (preg_match('/^(?:FACT|FACTURA|ANULACION_FACTURA)(?:[-\_\s]|\d|$)/', $normalized) === 1) {
 
@@ -988,13 +770,9 @@ class ImportarBibliotecaLinde extends Command
 
         }
 
-
-
         return 'otro';
 
     }
-
-
 
     /**
      * @return Collection<int, Planta>
@@ -1034,10 +812,7 @@ class ImportarBibliotecaLinde extends Command
         };
     }
 
-
-
     private function matchingPlant(?Planta $planta, string $folder): ?Planta
-
     {
 
         if ($planta === null) {
@@ -1045,8 +820,6 @@ class ImportarBibliotecaLinde extends Command
             return null;
 
         }
-
-
 
         $folderWords = $this->words($folder);
 
@@ -1058,15 +831,11 @@ class ImportarBibliotecaLinde extends Command
 
         ));
 
-
-
         if ($plantWords === []) {
 
             return null;
 
         }
-
-
 
         return collect($plantWords)->contains(fn (string $word) => in_array($word, $folderWords, true))
 
@@ -1076,44 +845,50 @@ class ImportarBibliotecaLinde extends Command
 
     }
 
-
-
     private function matchingInvoice(Cotizacion $cotizacion, string $fileName): ?Factura
-
     {
-
         $invoices = $cotizacion->ordenCompra?->facturas ?? collect();
-
         $normalizedName = Str::upper(Str::ascii(pathinfo($fileName, PATHINFO_FILENAME)));
 
-        $matches = $invoices->filter(function (Factura $invoice) use ($normalizedName): bool {
+        preg_match_all('/\d+/', $normalizedName, $numberMatches);
 
+        $fileNumbers = collect($numberMatches[0] ?? [])
+            ->map(fn (string $number) => (string) ((int) $number))
+            ->filter()
+            ->values();
+
+        $matches = $invoices->filter(function (Factura $invoice) use ($normalizedName, $fileNumbers): bool {
             $folio = Str::upper(Str::ascii(trim((string) $invoice->folio)));
 
+            if ($folio === '') {
+                return false;
+            }
 
+            if (
+                preg_match(
+                    '/(^|[^A-Z0-9])'.preg_quote($folio, '/').'([^A-Z0-9]|$)/',
+                    $normalizedName
+                ) === 1
+            ) {
+                return true;
+            }
 
-            return $folio !== ''
+            if (ctype_digit($folio)) {
+                $normalizedFolio = (string) ((int) $folio);
 
-                && preg_match('/(^|[^A-Z0-9])'.preg_quote($folio, '/').'([^A-Z0-9]|$)/', $normalizedName) === 1;
+                return $fileNumbers->contains($normalizedFolio);
+            }
 
+            return false;
         });
 
-
-
         return $matches->count() === 1 ? $matches->first() : null;
-
     }
 
-
-
     /**
-
      * @return array<int, string>
-
      */
-
     private function words(string $value): array
-
     {
 
         return array_values(array_filter(preg_split(
@@ -1126,10 +901,7 @@ class ImportarBibliotecaLinde extends Command
 
     }
 
-
-
     private function isSafeZipPath(string $path): bool
-
     {
 
         if ($path === '' || str_contains($path, "\0") || str_starts_with($path, '/')) {
@@ -1144,26 +916,18 @@ class ImportarBibliotecaLinde extends Command
 
         }
 
-
-
         return ! collect(explode('/', $path))->contains('..');
 
     }
 
-
-
     private function isAbsolutePath(string $path): bool
-
     {
         return str_starts_with($path, '/')
             || str_starts_with($path, '\\')
             || preg_match('#^[A-Z]:[\\\\/]#i', $path) === 1;
     }
 
-
-
     private function linkLabel(Model $model): string
-
     {
 
         return match (true) {
@@ -1182,14 +946,10 @@ class ImportarBibliotecaLinde extends Command
 
     }
 
-
-
     private function typeLabel(string $type): string
-
     {
 
         return $type.' ('.(Documento::TIPOS[$type] ?? 'Tipo desconocido').')';
 
     }
-
 }
