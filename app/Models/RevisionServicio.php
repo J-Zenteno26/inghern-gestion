@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class RevisionServicio extends Model
 {
@@ -40,5 +41,14 @@ class RevisionServicio extends Model
     public function partidas(): HasMany
     {
         return $this->hasMany(PartidaCotizacion::class);
+    }
+
+    public function documentos(): MorphToMany
+    {
+        return $this->morphToMany(
+            Documento::class,
+            'vinculable',
+            'documento_vinculos',
+        )->withTimestamps();
     }
 }

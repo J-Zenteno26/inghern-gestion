@@ -1,4 +1,17 @@
 .price-reference-workspace > .toolbar [data-price-status] { width: min(100%, 13rem); }
+.service-index-toolbar { border-color: #cddfe8; background: linear-gradient(180deg, #fff 0%, #f7fbfd 100%); box-shadow: 0 8px 22px rgb(21 62 86 / 5%); }
+.service-index-toolbar .toolbar__filters { grid-template-columns: minmax(14rem, 1.15fr) minmax(14rem, 1.15fr) minmax(10rem, .7fr); }
+.service-index-toolbar .toolbar__filter label { color: #526f7f; display: inline-flex; align-items: center; gap: .32rem; }
+.service-index-toolbar .toolbar__filter label svg { color: var(--steel-600); }
+.service-index-panel { border-color: #d2e1e8; box-shadow: 0 12px 30px rgb(21 62 86 / 6%); overflow: hidden; }
+.service-index-table { min-width: 68rem; }
+.service-index-table th { background: #eaf3f7; color: #4c6878; }
+.service-table-heading { display: inline-flex; align-items: center; gap: .35rem; white-space: nowrap; }
+.service-table-heading svg { color: var(--steel-600); }
+.service-index-table__identity { min-width: 20rem; display: flex; align-items: center; gap: .65rem; }
+.service-index-table__icon { width: 2.1rem; height: 2.1rem; flex: 0 0 auto; border-radius: .58rem; background: var(--steel-50); color: var(--steel-600); display: grid; place-items: center; }
+.service-index-table__copy { min-width: 0; display: grid; gap: .12rem; }
+.service-index-table__copy .table-secondary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .service-create-page > .page-header { position: relative; min-height: 10.5rem; padding: 1.5rem; border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--petrol-800), var(--ink-950)); color: white; align-items: center; overflow: hidden; box-shadow: var(--shadow-sm); }
 .service-create-page > .page-header::after { position: absolute; top: -5rem; right: -3rem; width: 15rem; height: 15rem; border: 1px solid rgb(255 255 255 / 12%); border-radius: 50%; content: ''; }
 .service-create-page > .page-header > * { position: relative; z-index: 1; }
@@ -77,6 +90,7 @@
 }
 
 @media (max-width: 900px) {
+    .service-index-toolbar .toolbar__filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .service-form-layout { grid-template-columns: 1fr; }
     .service-plants-panel { position: static; }
     .service-detail-layout { grid-template-columns: 1fr; }
@@ -89,6 +103,7 @@
 }
 
 @media (max-width: 640px) {
+    .service-index-toolbar .toolbar__filters { grid-template-columns: 1fr; }
     .service-create-page > .page-header { min-height: 0; padding: 1.1rem; }
     .service-detail-page > .page-header { min-height: 0; padding: 1rem; align-items: flex-start; }
     .service-detail-header-actions { width: 100%; justify-content: flex-start; }

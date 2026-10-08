@@ -8,6 +8,11 @@
         $tiposServicio = $cliente->servicios->pluck('tipo')->filter()->unique('id')->sortBy('nombre');
         $estadosServicio = $cliente->servicios->pluck('estado')->filter()->unique()->sort()->values();
         $estadosCotizacion = $cliente->cotizaciones->pluck('estado')->filter()->unique()->sort()->values();
+        $documentos = $cliente->documentosPropios()->with('usuarioCreador')->latest()->limit(3)->get();
+        $totalDocumentos = $cliente->documentosPropios()->count();
+        $tiposDocumento = \App\Models\Documento::TIPOS;
+        $cotizacionesPorAsignar = $cliente->cotizaciones->whereNull('planta_id')->count();
+        $serviciosPorAsignar = $cliente->servicios->filter(fn ($servicio) => $servicio->plantas->isEmpty())->count();
     @endphp
 
     <section class="organization-hero">
@@ -78,6 +83,52 @@
             </div>
         </article>
     </section>
+
+    <section class="organization-plants" aria-labelledby="organization-plants-title">
+        <header class="organization-plants__header">
+            <div>
+                <span class="organization-plants__eyebrow">Centros de trabajo</span>
+                <h2 id="organization-plants-title">Plantas</h2>
+                <p>Contexto operativo y comercial de la organización.</p>
+            </div>
+            <span class="organization-plants__count">{{ $cliente->plantas->count() }}</span>
+        </header>
+        <div class="organization-plant-grid">
+            @forelse ($cliente->plantas as $planta)
+                @php($serviciosActivosPlanta = $planta->servicios->whereIn('estado', ['prospecto', 'planificado', 'en_curso', 'en_pausa', 'activo'])->count())
+                <article class="organization-plant-card">
+                    <div class="organization-plant-card__header">
+                        <span><x-ui.icon name="factory" size="21" /></span>
+                        <x-ui.badge :status="$planta->estado" />
+                    </div>
+                    <h3>{{ $planta->nombre }}</h3>
+                    <p><x-ui.icon name="map-pin" size="14" /> {{ collect([$planta->direccion, $planta->comuna, $planta->ciudad, $planta->region])->filter()->join(', ') ?: 'Ubicación por completar' }}</p>
+                    <dl>
+                        <div><dt>Servicios activos</dt><dd>{{ $serviciosActivosPlanta }}</dd></div>
+                        <div><dt>Cotizaciones</dt><dd>{{ $planta->cotizaciones->count() }}</dd></div>
+                        <div><dt>Documentos</dt><dd>{{ $planta->documentos_relacionados_count }}</dd></div>
+                    </dl>
+                    <x-ui.button :href="route('plantas.show', $planta)" variant="secondary" size="small">Abrir planta <x-ui.icon name="arrow" size="14" /></x-ui.button>
+                </article>
+            @empty
+                <p class="organization-plants__empty">Esta organización aún no tiene plantas registradas.</p>
+            @endforelse
+        </div>
+    </section>
+
+    @if ($cotizacionesPorAsignar > 0 || $serviciosPorAsignar > 0)
+        <section class="organization-unassigned">
+            <div><span><x-ui.icon name="sliders-horizontal" size="18" /></span><div><h2>Por organizar</h2><p>Registros que todavía no tienen contexto de Planta.</p></div></div>
+            <div class="organization-unassigned__actions">
+                @if ($cotizacionesPorAsignar > 0)
+                    <x-ui.button :href="route('cotizaciones.index', ['cliente' => $cliente->id])" variant="outline" size="small">{{ $cotizacionesPorAsignar }} cotización{{ $cotizacionesPorAsignar === 1 ? '' : 'es' }}</x-ui.button>
+                @endif
+                @if ($serviciosPorAsignar > 0)
+                    <x-ui.button :href="route('servicios.index', ['cliente' => $cliente->id])" variant="outline" size="small">{{ $serviciosPorAsignar }} servicio{{ $serviciosPorAsignar === 1 ? '' : 's' }}</x-ui.button>
+                @endif
+            </div>
+        </section>
+    @endif
 
     <div class="organization-layout">
         <div class="organization-main">
@@ -282,6 +333,42 @@
                         </div>
                     </div>
                 @endif
+                </div>
+            </section>
+
+            <section class="organization-panel organization-documents" aria-labelledby="organization-documents-title">
+                <header class="organization-panel__header organization-panel__header--petrol">
+                    <div class="organization-panel__heading">
+                        <span class="organization-panel__icon"><x-ui.icon name="folder" /></span>
+                        <div>
+                            <h2 id="organization-documents-title">Documentos</h2>
+                            <p>Archivos privados asociados a esta organización.</p>
+                        </div>
+                    </div>
+                    <div class="organization-panel__header-actions">
+                        <span class="organization-panel__count">{{ $totalDocumentos }}</span>
+                    </div>
+                </header>
+
+                @if ($documentos->isEmpty())
+                    <p class="organization-document-summary__empty">Aún no hay documentos para esta organización.</p>
+                @else
+                    <div class="organization-document-summary">
+                        @foreach ($documentos as $documento)
+                            <div class="organization-document-summary__row">
+                                <span class="organization-document-summary__icon"><x-ui.icon :name="$documento->icono()" size="17" /></span>
+                                <div class="organization-document-summary__copy"><strong>{{ $documento->nombre }}</strong><span>{{ $tiposDocumento[$documento->tipo_documento] ?? ucfirst(str_replace('_', ' ', $documento->tipo_documento)) }} · {{ strtoupper($documento->extension) }} · {{ $documento->created_at?->format('d/m/Y') ?? '—' }}</span></div>
+                                <a class="organization-document-summary__download" href="{{ route('biblioteca.documentos.download', [$cliente, $documento]) }}" title="Descargar"><x-ui.icon name="download" size="16" /></a>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+                <div class="organization-document-summary__footer">
+                    <span>{{ $totalDocumentos }} {{ $totalDocumentos === 1 ? 'documento' : 'documentos' }}</span>
+                    <div class="organization-panel__header-actions">
+                        <x-ui.button :href="route('biblioteca.index', ['cliente' => $cliente->id])" variant="ghost" size="small"><x-ui.icon name="folder" size="15" /> Ver en Biblioteca</x-ui.button>
+                        <x-ui.button :href="route('biblioteca.index', ['cliente' => $cliente->id, 'subir' => 1])" variant="secondary" size="small"><x-ui.icon name="plus" size="14" /><x-ui.icon name="file-text" size="15" /> Añadir documento</x-ui.button>
+                    </div>
                 </div>
             </section>
         </div>

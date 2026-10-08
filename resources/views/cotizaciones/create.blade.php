@@ -93,6 +93,21 @@
                         @endif
                     </x-ui.field>
 
+                    <x-ui.field name="planta_id" label="Planta" required>
+                        <x-ui.select name="planta_id" data-quote-plant-select required>
+                            <option value="">Seleccionar planta</option>
+                            @foreach ($plantasDisponibles as $planta)
+                                <option
+                                    value="{{ $planta->id }}"
+                                    data-client="{{ $planta->cliente_id }}"
+                                    @selected((string) $plantaSeleccionada === (string) $planta->id)
+                                >
+                                    {{ $planta->nombre }}
+                                </option>
+                            @endforeach
+                        </x-ui.select>
+                    </x-ui.field>
+
                     <x-ui.field name="contacto_id" label="Contacto destinatario">
                         <x-ui.select name="contacto_id" data-contact-select>
                             <option value="">Sin contacto definido</option>

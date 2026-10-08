@@ -15,6 +15,21 @@ return [
 
     'default' => env('FILESYSTEM_DISK', 'local'),
 
+    'document_uploads' => [
+        'allowed_extensions' => [
+            'pdf',
+            'jpg',
+            'jpeg',
+            'png',
+            'doc',
+            'docx',
+            'xls',
+            'xlsx',
+            'dwg',
+        ],
+        'max_size_kilobytes' => 20 * 1024,
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks
@@ -34,6 +49,14 @@ return [
             'driver' => 'local',
             'root' => storage_path('app/private'),
             'serve' => true,
+            'throw' => false,
+            'report' => false,
+        ],
+
+        'documentos' => [
+            'driver' => 'local',
+            'root' => env('DOCUMENTS_ROOT', storage_path('app/private/documentos')),
+            'visibility' => 'private',
             'throw' => false,
             'report' => false,
         ],

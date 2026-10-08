@@ -1,7 +1,19 @@
 @props([
-    "name",
+    "name" => null,
+    "entity" => null,
     "size" => 18,
 ])
+@php
+    $entityIcons = [
+        'servicio' => 'briefcase-business',
+        'cotizacion' => 'file-text',
+        'planta' => 'factory',
+        'organizacion' => 'building-2',
+        'factura' => 'receipt',
+        'documento' => 'file',
+    ];
+    $name = $entity ? ($entityIcons[$entity] ?? 'file') : ($name ?? 'file');
+@endphp
 <svg
     {{ $attributes }}
     width="{{ $size }}"
@@ -92,9 +104,53 @@
             <path d="M14 2v6h6M3 15h6M6 12v6" />
 
             @break
+        @case("download")
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <path d="m7 10 5 5 5-5M12 15V3" />
+
+            @break
+        @case("link-2-off")
+            <path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 0 1 4.5 7.2M8 12h4M2 2l20 20" />
+
+            @break
+        @case("link")
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+
+            @break
+        @case("arrow-left")
+            <path d="m12 19-7-7 7-7M19 12H5" />
+
+            @break
         @case("file-text")
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <path d="M14 2v6h6M8 13h8M8 17h8M8 9h2" />
+
+            @break
+        @case("file-pdf")
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <path d="M14 2v6h6M8 13h2a2 2 0 0 1 0 4H8v-4Zm6 4v-4h2.5M14 15h2" />
+
+            @break
+        @case("file-type")
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <path d="M14 2v6h6M8 13h8M12 13v5" />
+
+            @break
+        @case("file-spreadsheet")
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <path d="M14 2v6h6M8 13h8M8 17h8M12 11v8" />
+
+            @break
+        @case("image")
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="9" cy="9" r="2" />
+            <path d="m21 15-5-5L5 21" />
+
+            @break
+        @case("drafting-compass")
+            <path d="m12 2 3 5-3 5-3-5 3-5Z" />
+            <path d="m9 10-5 11M15 10l5 11M6.5 16h11" />
 
             @break
         @case("factory")

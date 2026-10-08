@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreClienteRequest;
 use App\Http\Requests\UpdateClienteRequest;
 use App\Models\Cliente;
+use App\Models\Documento;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -18,7 +19,16 @@ class ClienteController extends Controller
     {
         $buscar = trim((string) $request->query('buscar'));
         $clientes = Cliente::query()
-            ->withCount(['contactos', 'plantas', 'servicios'])
+            ->withCount([
+                'contactos',
+                'plantas',
+                'cotizaciones',
+                'documentosPropios',
+                'servicios as servicios_activos_count' => fn ($query) => $query->whereIn(
+                    'estado',
+                    ['prospecto', 'planificado', 'en_curso', 'en_pausa', 'activo'],
+                ),
+            ])
             ->when(
                 $buscar,
                 fn ($q) => $q->where(
@@ -85,11 +95,19 @@ class ClienteController extends Controller
     {
         $cliente->load([
             'contactos',
-            'plantas',
+            'plantas.servicios',
+            'plantas.cotizaciones',
             'servicios.tipo',
             'servicios.plantas',
             'cotizaciones.revisionActual',
         ]);
+
+        $cliente->plantas->each(function ($planta): void {
+            $planta->setAttribute(
+                'documentos_relacionados_count',
+                Documento::query()->dePlanta($planta)->count(),
+            );
+        });
 
         return view('clientes.show', compact('cliente'));
     }

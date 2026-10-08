@@ -47,7 +47,7 @@
 }
 .quote-index-toolbar .toolbar__search .ui-control { border-color: #bdd3df; background: #fff; }
 .quote-index-toolbar .toolbar__search > svg { color: var(--quote-index-blue-medium); }
-.quote-index-toolbar .toolbar__filters { border-top-color: #d9e6ec; }
+.quote-index-toolbar .toolbar__filters { border-top-color: #d9e6ec; grid-template-columns: repeat(4, minmax(10rem, 1fr)); }
 .quote-index-toolbar .toolbar__filter label { display: inline-flex; align-items: center; gap: .32rem; color: #526f7f; }
 .quote-index-toolbar .toolbar__filter label svg { color: var(--quote-index-blue-medium); }
 .quote-index-toolbar .toolbar__filter .ui-control { background: #fff; }
@@ -85,8 +85,13 @@
 .quote-panel-heading--services .quote-panel-heading__icon { background: #2f7093; color: white; }
 .quote-proposal-card .ui-panel__header { background: linear-gradient(100deg, #f7fbfd 0%, #eef6fa 100%); }
 .quote-proposal-card .ui-panel__body { background: #fbfdfe; }
-.quote-header-grid { display: grid; grid-template-columns: minmax(13rem, 1.05fr) minmax(13rem, 1.05fr) minmax(20rem, 1.7fr) 7rem 6.5rem; gap: .85rem; align-items: end; }
-.quote-header-grid > .ui-field { grid-column: auto; }
+.quote-header-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: .85rem; align-items: end; }
+.quote-header-grid > .ui-field:nth-child(1),
+.quote-header-grid > .ui-field:nth-child(2),
+.quote-header-grid > .ui-field:nth-child(3) { grid-column: span 2; }
+.quote-header-grid > .ui-field:nth-child(4) { grid-column: span 3; }
+.quote-header-grid > .ui-field:nth-child(5) { grid-column: span 1; }
+.quote-header-grid > .ui-field:nth-child(6) { grid-column: span 2; }
 .quote-validation-summary { margin-bottom: 1rem; padding: .8rem 1rem; border: 1px solid #e3aaa5; border-left: 4px solid var(--danger); border-radius: var(--radius-sm); background: #fff5f4; color: #7f2f29; display: grid; gap: .12rem; }
 .quote-validation-summary > strong { font-family: 'Rubik'; font-size: .82rem; }
 .quote-validation-summary > span { font-size: .74rem; }
@@ -440,6 +445,9 @@
 .quote-show-page .quote-invoices__table td { padding: .62rem .68rem; font-size: .7rem; white-space: nowrap; }
 
 .quote-show-page .quote-show-panel--services .ui-panel__body { padding: .9rem 1rem 1rem; background: #f5f9fb; }
+.quote-show-page .quote-show-panel--services .ui-panel__header > div:first-child { min-width: 0; }
+.quote-show-page .quote-show-documents-link { padding: .42rem .6rem; border: 1px solid rgb(255 255 255 / 24%); border-radius: .55rem; color: #fff; display: inline-flex; align-items: center; gap: .35rem; font-size: .68rem; font-weight: 700; white-space: nowrap; }
+.quote-show-page .quote-show-documents-link:hover { background: rgb(255 255 255 / 10%); }
 .quote-show-page .quote-show-service-list { display: grid; gap: .75rem; }
 .quote-show-page .quote-show-service-card { overflow: hidden; border: 1px solid #d7e6ed; border-radius: .9rem; background: #fff; }
 .quote-show-page .quote-show-service-card__header { padding: .85rem .9rem; border-bottom: 1px solid #e2ebef; background: linear-gradient(180deg, #fff, #f6fafc); display: flex; align-items: start; justify-content: space-between; gap: .7rem; }
@@ -454,6 +462,13 @@
 .quote-show-page .quote-show-service-card__grid > div:nth-child(n+3) { border-top: 1px solid #e5edf1; }
 .quote-show-page .quote-show-service-card__grid span { display: block; margin-bottom: .12rem; color: var(--muted); font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
 .quote-show-page .quote-show-service-card__grid strong { font-size: .72rem; line-height: 1.4; }
+.quote-show-page .quote-show-service-card__documents { min-height: 2.25rem; padding: .48rem .9rem; border-top: 1px solid #e5edf1; background: #f8fbfc; color: var(--muted); display: flex; align-items: center; gap: .38rem; font-size: .68rem; }
+.quote-show-page .quote-show-service-card__documents a,
+.quote-show-page .quote-show-general-documents a { margin-left: auto; color: var(--quote-blue-2); font-weight: 800; white-space: nowrap; }
+.quote-show-page .quote-show-service-card__documents a:hover,
+.quote-show-page .quote-show-general-documents a:hover { text-decoration: underline; }
+.quote-show-page .quote-show-general-documents { min-height: 2.65rem; padding: .58rem .8rem; border: 1px dashed #bdd2dd; border-radius: .7rem; background: #edf5f8; color: var(--muted); display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: .8rem; font-size: .68rem; }
+.quote-show-page .quote-show-general-documents > div { color: var(--quote-blue); display: flex; align-items: center; gap: .42rem; font-weight: 800; }
 
 @media (max-width: 1080px) {
     .quote-show-page .quote-show-metrics { grid-template-columns: repeat(2, minmax(0,1fr)); }
@@ -481,11 +496,24 @@
     .quote-show-page .quote-invoices__metrics { grid-template-columns: 1fr; }
     .quote-show-page .quote-show-service-card__grid > div:nth-child(even) { padding-left: 0; }
     .quote-show-page .quote-show-service-card__grid > div:nth-child(n+2) { border-top: 1px solid #e5edf1; }
+    .quote-show-page .quote-show-general-documents { grid-template-columns: 1fr auto; }
+    .quote-show-page .quote-show-general-documents > div { grid-column: 1 / -1; }
 }
+
+@media print {
+    .quote-show-page .quote-document-control { display: none !important; }
+}
+
+.quote-document-actions { display: flex; align-items: center; gap: .35rem; }
+.quote-plant-assignment { margin-top: .45rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .35rem; }
+.quote-plant-assignment .ui-control { min-width: 0; font-size: .7rem; }
+.quote-show-info-item--plant > div { width: 100%; }
 
 @media (max-width: 900px) {
     .quote-editor { width: 100%; margin-left: 0; transform: none; }
     .quote-header-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .quote-header-grid > .ui-field { grid-column: auto; }
+    .quote-index-toolbar .toolbar__filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .quote-workspace { grid-template-columns: 1fr; }
     .quote-workspace__summary { position: static; }
     .quote-catalog-group__grid { grid-template-columns: 1fr; }
@@ -494,6 +522,7 @@
 
 @media (max-width: 640px) {
     .quote-header-grid { grid-template-columns: 1fr; }
+    .quote-index-toolbar .toolbar__filters { grid-template-columns: 1fr; }
     .quote-service-catalog__toolbar { align-items: stretch; flex-direction: column; }
     .quote-service-catalog__counter { width: 100%; }
     .quote-catalog-card__topline { align-items: flex-start; flex-direction: column; gap: .3rem; }

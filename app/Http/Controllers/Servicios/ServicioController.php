@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreServicioRequest;
 use App\Models\Cliente;
 use App\Models\Cotizacion;
+use App\Models\Planta;
 use App\Models\Servicio;
 use App\Models\TipoServicio;
 use Illuminate\Http\RedirectResponse;
@@ -21,6 +22,8 @@ class ServicioController extends Controller
     {
         $buscar = trim((string) $request->query('buscar'));
         $estado = $request->query('estado');
+        $clienteId = $request->integer('cliente');
+        $plantaId = $request->integer('planta');
         $servicios = Servicio::with([
             'cliente',
             'tipo',
@@ -44,13 +47,23 @@ class ServicioController extends Controller
                 ),
             )
             ->when($estado, fn ($q) => $q->where('estado', $estado))
+            ->when($clienteId, fn ($q) => $q->where('cliente_id', $clienteId))
+            ->when(
+                $plantaId,
+                fn ($q) => $q->whereHas('plantas', fn ($plantas) => $plantas->whereKey($plantaId)),
+            )
             ->latest()
             ->paginate(15)
             ->withQueryString();
 
         return view(
             'servicios.index',
-            compact('servicios', 'buscar', 'estado'),
+            compact('servicios', 'buscar', 'estado', 'clienteId', 'plantaId') + [
+                'clientesFiltro' => Cliente::query()->orderBy('razon_social')->get(),
+                'plantasFiltro' => Planta::query()
+                    ->orderBy('nombre')
+                    ->get(),
+            ],
         );
     }
 

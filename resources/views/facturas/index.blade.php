@@ -1,6 +1,3 @@
-<div>
-    <!-- Order your soul. Reduce your wants. - Augustine -->
-</div>
 @extends('layouts.app')
 @section('title', 'Facturas')
 @section('content')
@@ -16,7 +13,7 @@
                 default => '$'.number_format($amount, 0, ',', '.'),
             };
         };
-        $hayFiltros = $buscar || $clienteId || $estado || $periodo || $ordenCompraFiltro;
+        $hayFiltros = $buscar || $clienteId || $plantaId || $estado || $periodo || $ordenCompraFiltro;
     @endphp
 
     <div class="invoice-index-page">
@@ -104,7 +101,7 @@
             </div>
         @endif
 
-        <form class="toolbar toolbar--stacked invoice-index-toolbar" method="GET">
+        <form class="toolbar toolbar--stacked invoice-index-toolbar" method="GET" data-filter-form>
             @if ($ordenCompraFiltro)
                 <input type="hidden" name="oc" value="{{ $ordenCompraFiltro->id }}" />
             @endif
@@ -130,7 +127,7 @@
                         <x-ui.icon name="building-2" size="14" />
                         Organización
                     </label>
-                    <x-ui.select name="cliente">
+                    <x-ui.select name="cliente" data-filter-client data-auto-submit>
                         <option value="">Todas las organizaciones</option>
                         @foreach ($clientesFiltro as $cliente)
                             <option value="{{ $cliente->id }}" @selected($clienteId === $cliente->id)>
@@ -140,11 +137,25 @@
                     </x-ui.select>
                 </div>
                 <div class="toolbar__filter">
+                    <label for="planta">
+                        <x-ui.icon name="factory" size="14" />
+                        Planta
+                    </label>
+                    <x-ui.select name="planta" data-filter-plant data-auto-submit>
+                        <option value="">Todas las plantas</option>
+                        @foreach ($plantasFiltro as $planta)
+                            <option value="{{ $planta->id }}" data-client="{{ $planta->cliente_id }}" @selected($plantaId === $planta->id)>
+                                {{ $planta->nombre }}
+                            </option>
+                        @endforeach
+                    </x-ui.select>
+                </div>
+                <div class="toolbar__filter">
                     <label for="estado">
                         <x-ui.icon name="sliders-horizontal" size="14" />
                         Estado
                     </label>
-                    <x-ui.select name="estado">
+                    <x-ui.select name="estado" data-auto-submit>
                         <option value="">Todos los estados</option>
                         @foreach ($estados as $valor => $etiqueta)
                             <option value="{{ $valor }}" @selected($estado === $valor)>{{ $etiqueta }}</option>
@@ -156,17 +167,13 @@
                         <x-ui.icon name="calendar-days" size="14" />
                         Período
                     </label>
-                    <x-ui.select name="periodo">
+                    <x-ui.select name="periodo" data-auto-submit>
                         <option value="">Todo el historial</option>
                         <option value="este_mes" @selected($periodo === 'este_mes')>Este mes</option>
                         <option value="mes_anterior" @selected($periodo === 'mes_anterior')>Mes anterior</option>
                         <option value="este_ano" @selected($periodo === 'este_ano')>Este año</option>
                     </x-ui.select>
                 </div>
-                <x-ui.button type="submit" variant="outline" size="small">
-                    <x-ui.icon name="sliders-horizontal" size="15" />
-                    Aplicar filtros
-                </x-ui.button>
             </div>
             @if ($hayFiltros)
                 <x-ui.button
@@ -222,7 +229,10 @@
                                             <span class="table-secondary">{{ $factura->codigo }}</span>
                                         @endif
                                     </td>
-                                    <td>{{ $factura->cliente->nombre_display }}</td>
+                                    <td>
+                                        <span class="table-primary">{{ $factura->cliente->nombre_display }}</span>
+                                        <span class="table-secondary"><x-ui.icon name="factory" size="13" /> {{ $factura->ordenCompra->cotizacion->planta?->nombre ?? 'Planta por asignar' }}</span>
+                                    </td>
                                     <td>
                                         <span class="table-primary">{{ $factura->ordenCompra->numero }}</span>
                                         <div class="invoice-progress invoice-progress--compact">

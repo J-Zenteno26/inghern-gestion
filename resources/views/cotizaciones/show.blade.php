@@ -19,13 +19,18 @@
             'hora_hombre' => 'Hora hombre',
             'costo_margen' => 'Costo + margen',
         ];
+
+        $revisionActual->servicios->loadCount('documentos');
+        $documentosGenerales = \App\Models\Documento::query()
+            ->generalesDeCotizacion($cotizacion)
+            ->count();
     @endphp
 
     <div class="quote-show-page">
     <x-ui.page-header
         :eyebrow="'Cotización · ' . $cotizacion->codigo"
         :title="$revisionActual->titulo"
-        :description="$cotizacion->cliente->nombre_display"
+        :description="($cotizacion->planta?->nombre ?? 'Planta por asignar') . ' · ' . $cotizacion->cliente->nombre_display"
     >
         <x-slot:actions>
             <div class="quote-show-header-actions">
@@ -258,6 +263,18 @@
                         </div>
                     </div>
                 </x-slot:title>
+                <x-slot:actions>
+                    <div class="quote-document-actions">
+                        <x-ui.button :href="route('biblioteca.index', ['cotizacion' => $cotizacion->id, 'subir' => 1])" variant="secondary" size="small">
+                            <x-ui.icon name="plus" size="14" /><x-ui.icon name="file-text" size="14" />
+                            Añadir documento
+                        </x-ui.button>
+                        <x-ui.button :href="route('biblioteca.index', ['cotizacion' => $cotizacion->id])" variant="ghost" size="small">
+                            <x-ui.icon name="folder" size="15" />
+                            Ver en Biblioteca
+                        </x-ui.button>
+                    </div>
+                </x-slot:actions>
 
                 <div class="quote-show-service-list">
                     @forelse ($revisionActual->servicios->sortBy('orden') as $servicioCotizado)
@@ -306,10 +323,27 @@
                                     </strong>
                                 </div>
                             </div>
+                            <div class="quote-show-service-card__documents quote-document-control">
+                                <x-ui.icon name="paperclip" size="15" />
+                                <span>{{ $servicioCotizado->documentos_count }} documento{{ $servicioCotizado->documentos_count === 1 ? '' : 's' }}</span>
+                                <x-ui.button :href="route('biblioteca.index', ['cotizacion' => $cotizacion->id, 'revision_servicio' => $servicioCotizado->id])" variant="ghost" size="small">
+                                    <x-ui.icon name="folder" size="14" /> Ver en Biblioteca
+                                </x-ui.button>
+                            </div>
                         </article>
                     @empty
                         <p class="muted">Sin servicios cotizados</p>
                     @endforelse
+                    <div class="quote-show-general-documents quote-document-control">
+                        <div>
+                            <x-ui.icon name="files" size="16" />
+                            <span>Documentos generales de la cotización</span>
+                        </div>
+                        <span>{{ $documentosGenerales }} documento{{ $documentosGenerales === 1 ? '' : 's' }}</span>
+                        <x-ui.button :href="route('biblioteca.index', ['cotizacion' => $cotizacion->id, 'contexto' => 'general'])" variant="ghost" size="small">
+                            <x-ui.icon name="folder" size="14" /> Ver en Biblioteca
+                        </x-ui.button>
+                    </div>
                 </div>
             </x-ui.panel>
         </div>
@@ -334,6 +368,31 @@
                         <div>
                             <span>Organización</span>
                             <strong><a href="{{ route('clientes.show', $cotizacion->cliente) }}">{{ $cotizacion->cliente->nombre_display }}</a></strong>
+                        </div>
+                    </div>
+                    <div class="quote-show-info-item quote-show-info-item--plant">
+                        <span class="quote-show-info-item__icon"><x-ui.icon name="factory" size="16" /></span>
+                        <div>
+                            <span>Planta</span>
+                            <strong>
+                                @if ($cotizacion->planta)
+                                    <a href="{{ route('plantas.show', $cotizacion->planta) }}">{{ $cotizacion->planta->nombre }}</a>
+                                @else
+                                    Planta por asignar
+                                @endif
+                            </strong>
+                            <form class="quote-plant-assignment" method="POST" action="{{ route('cotizaciones.planta.update', $cotizacion) }}">
+                                @csrf
+                                @method('PATCH')
+                                <x-ui.select name="planta_id" required>
+                                    <option value="">Seleccionar planta</option>
+                                    @foreach ($plantasDisponibles as $planta)
+                                        <option value="{{ $planta->id }}" @selected((int) old('planta_id', $cotizacion->planta_id) === (int) $planta->id)>{{ $planta->nombre }}</option>
+                                    @endforeach
+                                </x-ui.select>
+                                <x-ui.button type="submit" variant="outline" size="small">{{ $cotizacion->planta_id ? 'Cambiar' : 'Asignar' }}</x-ui.button>
+                            </form>
+                            @error('planta_id')<span class="ui-field__error">{{ $message }}</span>@enderror
                         </div>
                     </div>
                     <div class="quote-show-info-item">

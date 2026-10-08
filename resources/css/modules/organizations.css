@@ -138,3 +138,46 @@
     .organization-hero__actions .ui-button { width: 100%; }
 }
 
+.organization-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.organization-card { min-height: 18rem; padding: 1.2rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: white; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 1rem; }
+.organization-card__header { display: flex; align-items: center; justify-content: space-between; }
+.organization-card__icon { width: 2.7rem; height: 2.7rem; border-radius: .75rem; background: var(--petrol-800); color: white; display: grid; place-items: center; }
+.organization-card__identity h2 { font-size: 1.22rem; }
+.organization-card__identity p { margin-top: .15rem; color: var(--muted); font-size: .76rem; }
+.organization-card__identity span { color: var(--steel-600); font-size: .7rem; font-weight: 700; }
+.organization-card__metrics { margin-top: auto; padding: .8rem 0; border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; }
+.organization-card__metrics dt { color: var(--muted); font-size: .62rem; }
+.organization-card__metrics dd { margin-top: .12rem; font-family: 'Rubik'; font-size: 1.08rem; font-weight: 700; }
+.organization-card > .ui-button { align-self: flex-start; }
+
+.organization-plants { margin-bottom: 1rem; padding: 1.1rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: white; box-shadow: var(--shadow-sm); }
+.organization-plants__header { margin-bottom: .9rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.organization-plants__eyebrow { color: var(--steel-600); font-size: .64rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+.organization-plants__header h2 { margin-top: .12rem; font-size: 1.2rem; }
+.organization-plants__header p { color: var(--muted); font-size: .72rem; }
+.organization-plants__count { min-width: 2.2rem; height: 2.2rem; border-radius: .65rem; background: var(--petrol-800); color: white; display: grid; place-items: center; font-family: 'Rubik'; font-weight: 700; }
+.organization-plant-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.organization-plant-card { min-height: 14rem; padding: .9rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--surface-subtle); display: flex; flex-direction: column; gap: .55rem; }
+.organization-plant-card__header { display: flex; align-items: center; justify-content: space-between; }
+.organization-plant-card__header > span { width: 2.3rem; height: 2.3rem; border-radius: .65rem; background: var(--identity-soft); color: var(--petrol-800); display: grid; place-items: center; }
+.organization-plant-card h3 { font-size: .95rem; }
+.organization-plant-card > p { min-height: 2rem; color: var(--muted); display: flex; align-items: flex-start; gap: .3rem; font-size: .68rem; }
+.organization-plant-card dl { margin-top: auto; padding: .55rem 0; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; }
+.organization-plant-card dt { color: var(--muted); font-size: .58rem; }
+.organization-plant-card dd { font-weight: 800; }
+.organization-plant-card > .ui-button { align-self: flex-start; }
+.organization-plants__empty { padding: 1rem; color: var(--muted); }
+.organization-unassigned { margin-bottom: 1rem; padding: .8rem 1rem; border: 1px solid #f0cfaa; border-radius: var(--radius-md); background: var(--warning-soft); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.organization-unassigned > div:first-child { display: flex; align-items: center; gap: .6rem; }
+.organization-unassigned h2 { font-size: .88rem; }
+.organization-unassigned p { color: var(--muted); font-size: .68rem; }
+.organization-unassigned__actions { display: flex; gap: .45rem; }
+
+@media (max-width: 900px) {
+    .organization-plant-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 650px) {
+    .organization-card-grid, .organization-plant-grid { grid-template-columns: 1fr; }
+    .organization-card__metrics { grid-template-columns: repeat(2, 1fr); }
+    .organization-unassigned { align-items: flex-start; flex-direction: column; }
+}

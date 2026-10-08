@@ -7,10 +7,12 @@ use App\Domain\Cotizaciones\CrearCotizacion;
 use App\Enums\UnidadPrecio;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCotizacionRequest;
+use App\Http\Requests\UpdateCotizacionPlantaRequest;
 use App\Models\CatalogoServicio;
 use App\Models\Cliente;
 use App\Models\Cotizacion;
 use App\Models\CotizacionRevision;
+use App\Models\Planta;
 use App\Models\Servicio;
 use App\Models\TipoServicio;
 use Illuminate\Http\RedirectResponse;
@@ -24,6 +26,7 @@ class CotizacionController extends Controller
     {
         $buscar = trim((string) $request->query('buscar'));
         $clienteId = $request->integer('cliente');
+        $plantaId = $request->integer('planta');
         $estado = (string) $request->query('estado', '');
         $periodo = (string) $request->query('periodo', '');
         $orden = in_array($request->query('orden'), ['propuesta', 'cliente'], true)
@@ -111,7 +114,7 @@ class CotizacionController extends Controller
                 ->sum('total'),
         ];
 
-        $cotizaciones = Cotizacion::with(['cliente', 'revisionActual.contacto'])
+        $cotizaciones = Cotizacion::with(['cliente', 'planta', 'revisionActual.contacto'])
             ->when(
                 $buscar,
                 fn ($q) => $q->where(
@@ -140,6 +143,7 @@ class CotizacionController extends Controller
                 ),
             )
             ->when($clienteId, fn ($q) => $q->where('cliente_id', $clienteId))
+            ->when($plantaId, fn ($q) => $q->where('planta_id', $plantaId))
             ->when($estado, fn ($q) => $q->where('estado', $estado))
             ->when(
                 $rangoPeriodo,
@@ -200,6 +204,7 @@ class CotizacionController extends Controller
                 'cotizaciones',
                 'buscar',
                 'clienteId',
+                'plantaId',
                 'estado',
                 'estados',
                 'periodo',
@@ -208,6 +213,9 @@ class CotizacionController extends Controller
                 'metricas',
             ) + [
                 'clientesFiltro' => Cliente::orderBy('razon_social')->get(),
+                'plantasFiltro' => Planta::query()
+                    ->orderBy('nombre')
+                    ->get(),
             ],
         );
     }
@@ -230,6 +238,15 @@ class CotizacionController extends Controller
         $servicioSeleccionado = isset($seleccion['servicio'])
             ? Servicio::with(['tipo', 'catalogoServicio', 'plantas'])->findOrFail($seleccion['servicio'])
             : null;
+        $plantasDisponibles = $servicioSeleccionado && $servicioSeleccionado->plantas->isNotEmpty()
+            ? $servicioSeleccionado->plantas
+            : Planta::query()
+                ->orderBy('nombre')
+                ->get();
+        $plantaSeleccionada = old('planta_id');
+        if (! $plantaSeleccionada && $servicioSeleccionado?->plantas->count() === 1) {
+            $plantaSeleccionada = $servicioSeleccionado->plantas->first()->getKey();
+        }
 
         $catalogoServicios = CatalogoServicio::query()
             ->with(['tipo.variablesPrecio.niveles'])
@@ -305,11 +322,13 @@ class CotizacionController extends Controller
                 ]));
 
         return view('cotizaciones.create', [
-            'clientes' => Cliente::with('contactos')->orderBy('razon_social')->get(),
+            'clientes' => Cliente::with(['contactos', 'plantas'])->orderBy('razon_social')->get(),
             'catalogoServicios' => $catalogoServicios,
             'tiposDisponibles' => $tiposDisponibles,
             'clienteSeleccionado' => $seleccion['cliente'] ?? null,
             'servicioSeleccionado' => $servicioSeleccionado,
+            'plantasDisponibles' => $plantasDisponibles,
+            'plantaSeleccionada' => $plantaSeleccionada,
             'configuracionPrecios' => $configuracionPrecios,
             'serviciosOperativosPorCliente' => $serviciosOperativosPorCliente,
         ]);
@@ -334,6 +353,7 @@ class CotizacionController extends Controller
     {
         $cotizacion->load([
             'cliente',
+            'planta',
             'ordenCompra.creador',
             'ordenCompra.facturas',
             'revisiones',
@@ -363,7 +383,19 @@ class CotizacionController extends Controller
             'cantidadFacturas' => $facturasOrdenCompra?->count() ?? 0,
             'ultimaFactura' => $facturasOrdenCompra?->first(),
             'avanceFacturacion' => $avanceFacturacion,
+            'plantasDisponibles' => $cotizacion->cliente->plantas()->orderBy('nombre')->get(),
         ]);
+    }
+
+    public function updatePlanta(
+        UpdateCotizacionPlantaRequest $request,
+        Cotizacion $cotizacion,
+    ): RedirectResponse {
+        $cotizacion->update([
+            'planta_id' => $request->integer('planta_id'),
+        ]);
+
+        return back()->with('exito', 'Planta de la cotización actualizada.');
     }
 
     public function aceptar(

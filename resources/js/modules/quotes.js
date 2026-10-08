@@ -4,6 +4,7 @@ export function initQuotes() {
     const clientSelect = document.querySelector('[data-client-select]');
 const quoteForm = document.querySelector('[data-quote-form]');
 if (quoteForm) {
+    const plantSelect = quoteForm.querySelector('[data-quote-plant-select]');
     const servicesContainer = quoteForm.querySelector('[data-quote-services]');
     const serviceTemplate = document.querySelector('[data-quote-service-template]');
     const lineTemplate = document.querySelector('[data-line-template]');
@@ -27,6 +28,22 @@ if (quoteForm) {
 
     function clientId() {
         return quoteForm.querySelector('[name="cliente_id"]')?.value || clientSelect?.value || '';
+    }
+
+    function updatePlantOptions() {
+        if (!plantSelect) return;
+
+        const selectedClient = clientId();
+        let selectedVisible = !plantSelect.value;
+
+        [...plantSelect.options].forEach((option, index) => {
+            const visible = index === 0 || option.dataset.client === selectedClient;
+            option.hidden = !visible;
+            option.disabled = !visible;
+            if (visible && option.selected) selectedVisible = true;
+        });
+
+        if (!selectedVisible) plantSelect.value = '';
     }
 
     function catalogId(serviceBlock) {
@@ -751,7 +768,11 @@ if (quoteForm) {
             return;
         }
 
-        if (event.target.matches('[data-client-select], [data-contact-select]')) {
+        if (event.target.matches('[data-client-select]')) {
+            updatePlantOptions();
+        }
+
+        if (event.target.matches('[data-client-select], [data-contact-select], [data-quote-plant-select]')) {
             calculate();
         }
 
@@ -904,6 +925,7 @@ if (quoteForm) {
     });
 
     document.addEventListener('quote:client-changed', () => {
+        updatePlantOptions();
         updateCatalogLinks();
         servicesContainer.querySelectorAll('[data-quote-service]').forEach((serviceBlock) => {
             configureService(serviceBlock);
@@ -920,6 +942,7 @@ if (quoteForm) {
         setServiceExpanded(serviceBlock, index === 0);
     });
     updateCatalogLinks();
+    updatePlantOptions();
     updateServiceSelectionUi();
     filterCatalog();
     calculate();

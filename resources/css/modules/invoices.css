@@ -23,7 +23,9 @@
 .invoice-oc-filter strong { color: var(--invoice-blue); }
 .invoice-oc-filter small { color: var(--muted); }
 .invoice-index-panel { overflow: hidden; }
+.invoice-index-toolbar .toolbar__filters { grid-template-columns: repeat(4, minmax(10rem, 1fr)); }
 .invoice-index-table td { white-space: nowrap; }
+.invoice-index-table .table-secondary { display: flex; align-items: center; gap: .3rem; }
 .invoice-money { color: var(--invoice-orange); font-weight: 800; }
 .invoice-progress { display: flex; align-items: center; gap: .4rem; }
 .invoice-progress > span { height: .38rem; border-radius: 999px; background: #dfe9ee; overflow: hidden; flex: 1; }
@@ -92,6 +94,7 @@
     .invoice-create-layout,
     .invoice-show-layout { grid-template-columns: 1fr; }
     .invoice-create-summary { position: static; }
+    .invoice-index-toolbar .toolbar__filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 640px) {
@@ -104,4 +107,5 @@
     .invoice-payment-date__summary { align-items: flex-start; flex-direction: column; }
     .invoice-payment-date__form { grid-template-columns: 1fr; }
     .invoice-payment-date__actions { justify-content: flex-start; }
+    .invoice-index-toolbar .toolbar__filters { grid-template-columns: 1fr; }
 }

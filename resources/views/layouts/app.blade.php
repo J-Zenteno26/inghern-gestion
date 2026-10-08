@@ -42,6 +42,12 @@
                             Inicio
                         </a>
                         <a
+                            class="app-nav__link {{ request()->routeIs("plantas.*") ? "is-active" : "" }}"
+                            href="{{ route("plantas.index") }}"
+                        >
+                            Plantas
+                        </a>
+                        <a
                             class="app-nav__link {{ request()->routeIs("servicios.*") ? "is-active" : "" }}"
                             href="{{ route("servicios.index") }}"
                         >
@@ -52,6 +58,12 @@
                             href="{{ route("cotizaciones.index") }}"
                         >
                             Comercial
+                        </a>
+                        <a
+                            class="app-nav__link {{ request()->routeIs("biblioteca.*") ? "is-active" : "" }}"
+                            href="{{ route("biblioteca.index") }}"
+                        >
+                            Biblioteca
                         </a>
                         <a
                             class="app-nav__link {{ request()->routeIs("clientes.*") ? "is-active" : "" }}"
@@ -85,14 +97,16 @@
                     </div>
                 </div>
             </header>
-            @if (request()->routeIs("servicios.*", "cotizaciones.*", "facturas.*", "pagos.*", "clientes.*"))
+            @if (request()->routeIs("plantas.*", "servicios.*", "cotizaciones.*", "facturas.*", "pagos.*", "clientes.*"))
                 <div class="module-bar">
                     <nav class="module-bar__inner">
                         <span class="module-bar__label">
-                            {{ request()->routeIs("servicios.*") ? "Operación" : (request()->routeIs("cotizaciones.*", "facturas.*", "pagos.*") ? "Comercial" : "Relaciones") }}
+                            {{ request()->routeIs("plantas.*") ? "Plantas" : (request()->routeIs("servicios.*") ? "Operación" : (request()->routeIs("cotizaciones.*", "facturas.*", "pagos.*") ? "Comercial" : "Organizaciones")) }}
                         </span>
 
-                        @if (request()->routeIs("servicios.*"))
+                        @if (request()->routeIs("plantas.*"))
+                            <a class="module-bar__link is-active" href="{{ route("plantas.index") }}">Centros de control</a>
+                        @elseif (request()->routeIs("servicios.*"))
                             <a
                                 class="module-bar__link {{ request()->routeIs("servicios.index") ? "is-active" : "" }}"
                                 href="{{ route("servicios.index") }}"

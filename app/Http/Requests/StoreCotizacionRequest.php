@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Domain\Cotizaciones\CalculadorPrecioNormalizado;
 use App\Enums\UnidadPrecio;
 use App\Models\CatalogoServicio;
+use App\Models\Planta;
 use App\Models\Servicio;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -42,6 +43,7 @@ class StoreCotizacionRequest extends FormRequest
     {
         return [
             'cliente_id' => ['required', 'exists:clientes,id'],
+            'planta_id' => ['required', 'integer', 'exists:plantas,id'],
             'contacto_id' => ['nullable', 'exists:contactos,id'],
             'titulo' => ['required', 'string', 'max:200'],
             'moneda' => ['required', 'in:CLP,USD,UF'],
@@ -89,6 +91,18 @@ class StoreCotizacionRequest extends FormRequest
     {
         $validator->after(function (Validator $validator) {
             $clienteId = (int) $this->input('cliente_id');
+
+            $plantaValida = Planta::query()
+                ->whereKey($this->integer('planta_id'))
+                ->where('cliente_id', $clienteId)
+                ->exists();
+
+            if (! $plantaValida) {
+                $validator->errors()->add(
+                    'planta_id',
+                    'La planta seleccionada no pertenece a la organización indicada.',
+                );
+            }
 
             foreach ($this->input('servicios', []) as $servicioIndice => $datosServicio) {
                 $rutaServicio = "servicios.{$servicioIndice}";

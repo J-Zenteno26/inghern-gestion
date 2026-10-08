@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Cotizacion extends Model
@@ -17,6 +18,7 @@ class Cotizacion extends Model
 
     protected $fillable = [
         'cliente_id',
+        'planta_id',
         'creado_por',
         'codigo',
         'estado',
@@ -26,6 +28,11 @@ class Cotizacion extends Model
     public function cliente(): BelongsTo
     {
         return $this->belongsTo(Cliente::class);
+    }
+
+    public function planta(): BelongsTo
+    {
+        return $this->belongsTo(Planta::class);
     }
 
     public function creador(): BelongsTo
@@ -49,5 +56,14 @@ class Cotizacion extends Model
     public function ordenCompra(): HasOne
     {
         return $this->hasOne(OrdenCompra::class);
+    }
+
+    public function documentos(): MorphToMany
+    {
+        return $this->morphToMany(
+            Documento::class,
+            'vinculable',
+            'documento_vinculos',
+        )->withTimestamps();
     }
 }

@@ -8,6 +8,7 @@ use App\Models\CatalogoServicio;
 use App\Models\Cliente;
 use App\Models\Contacto;
 use App\Models\Cotizacion;
+use App\Models\Planta;
 use App\Models\Servicio;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -36,12 +37,24 @@ class CrearCotizacion
 
         return DB::transaction(function () use ($datos, $usuarioId) {
             $cliente = Cliente::query()->lockForUpdate()->findOrFail($datos['cliente_id']);
+            $planta = Planta::query()
+                ->whereKey($datos['planta_id'] ?? null)
+                ->whereBelongsTo($cliente)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $planta) {
+                throw ValidationException::withMessages([
+                    'planta_id' => 'La planta seleccionada no pertenece a la organización indicada.',
+                ]);
+            }
             $contacto = isset($datos['contacto_id'])
                 ? Contacto::whereBelongsTo($cliente)->find($datos['contacto_id'])
                 : null;
 
             $cotizacion = Cotizacion::create([
                 'cliente_id' => $cliente->id,
+                'planta_id' => $planta->id,
                 'creado_por' => $usuarioId,
                 'codigo' => $this->codigos->siguiente(Cotizacion::class, 'COT'),
                 'estado' => 'borrador',

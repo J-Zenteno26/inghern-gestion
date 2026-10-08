@@ -9,6 +9,7 @@ use App\Http\Requests\StoreFacturaRequest;
 use App\Models\Cliente;
 use App\Models\Factura;
 use App\Models\OrdenCompra;
+use App\Models\Planta;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -19,6 +20,7 @@ class FacturaController extends Controller
     {
         $buscar = trim((string) $request->query('buscar'));
         $clienteId = $request->integer('cliente');
+        $plantaId = $request->integer('planta');
         $estado = (string) $request->query('estado', '');
         $periodo = (string) $request->query('periodo', '');
         $ordenCompraId = $request->integer('oc');
@@ -101,7 +103,7 @@ class FacturaController extends Controller
             ->with([
                 'cliente',
                 'ordenCompra' => fn ($query) => $query
-                    ->with('cotizacion')
+                    ->with('cotizacion.planta')
                     ->withSum('facturas as neto_facturado', 'monto_neto'),
             ])
             ->when(
@@ -118,10 +120,21 @@ class FacturaController extends Controller
                             fn ($cliente) => $cliente
                                 ->where('razon_social', 'ilike', "%{$buscar}%")
                                 ->orWhere('nombre_fantasia', 'ilike', "%{$buscar}%"),
+                        )
+                        ->orWhereHas(
+                            'ordenCompra.cotizacion.planta',
+                            fn ($planta) => $planta->where('nombre', 'ilike', "%{$buscar}%"),
                         ),
                 ),
             )
             ->when($clienteId, fn ($query) => $query->where('cliente_id', $clienteId))
+            ->when(
+                $plantaId,
+                fn ($query) => $query->whereHas(
+                    'ordenCompra.cotizacion',
+                    fn ($cotizacion) => $cotizacion->where('planta_id', $plantaId),
+                ),
+            )
             ->when($estado, fn ($query) => $query->where('estado', $estado))
             ->when(
                 $rangoPeriodo,
@@ -139,11 +152,13 @@ class FacturaController extends Controller
         return view('facturas.index', [
             'facturas' => $facturas,
             'clientesFiltro' => Cliente::query()->orderBy('razon_social')->get(),
+            'plantasFiltro' => Planta::query()->orderBy('nombre')->get(),
             'estados' => $estados,
             'metricas' => $metricas,
             'grafico' => $grafico,
             'buscar' => $buscar,
             'clienteId' => $clienteId,
+            'plantaId' => $plantaId,
             'estado' => $estado,
             'periodo' => $periodo,
             'ordenCompraFiltro' => $ordenCompraFiltro,

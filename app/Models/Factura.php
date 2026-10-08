@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class Factura extends Model
 {
@@ -65,6 +66,12 @@ class Factura extends Model
     public function operacionesFactoring(): HasMany
     {
         return $this->hasMany(OperacionFactoring::class);
+    }
+
+    public function documentos(): MorphToMany
+    {
+        return $this->morphToMany(Documento::class, 'vinculable', 'documento_vinculos')
+            ->withTimestamps();
     }
 
     public function totalPagado(): float

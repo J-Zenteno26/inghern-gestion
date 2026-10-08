@@ -43,7 +43,7 @@
             icon="banknote"
         />
     </div>
-    <form class="toolbar toolbar--stacked quote-index-toolbar" method="GET">
+    <form class="toolbar toolbar--stacked quote-index-toolbar" method="GET" data-filter-form>
         <input type="hidden" name="orden" value="{{ $orden }}" />
         <input type="hidden" name="direccion" value="{{ $direccion }}" />
         <div class="toolbar__primary">
@@ -66,10 +66,10 @@
             <div class="toolbar__filter">
                 <label for="cliente">
                     <x-ui.icon name="building-2" size="14" />
-                    Cliente
+                    Organización
                 </label>
-                <x-ui.select name="cliente">
-                    <option value="">Todos los clientes</option>
+                <x-ui.select name="cliente" data-filter-client data-auto-submit>
+                    <option value="">Todas las organizaciones</option>
                     @foreach ($clientesFiltro as $cliente)
                         <option
                             value="{{ $cliente->id }}"
@@ -81,11 +81,29 @@
                 </x-ui.select>
             </div>
             <div class="toolbar__filter">
+                <label for="planta">
+                    <x-ui.icon name="factory" size="14" />
+                    Planta
+                </label>
+                <x-ui.select name="planta" data-filter-plant data-auto-submit>
+                    <option value="">Todas las plantas</option>
+                    @foreach ($plantasFiltro as $planta)
+                        <option
+                            value="{{ $planta->id }}"
+                            data-client="{{ $planta->cliente_id }}"
+                            @selected($plantaId === $planta->id)
+                        >
+                            {{ $planta->nombre }}
+                        </option>
+                    @endforeach
+                </x-ui.select>
+            </div>
+            <div class="toolbar__filter">
                 <label for="estado">
                     <x-ui.icon name="sliders-horizontal" size="14" />
                     Estado
                 </label>
-                <x-ui.select name="estado">
+                <x-ui.select name="estado" data-auto-submit>
                     <option value="">Todos los estados</option>
                     @foreach ($estados as $valor => $etiqueta)
                         <option value="{{ $valor }}" @selected($estado === $valor)>
@@ -99,7 +117,7 @@
                     <x-ui.icon name="calendar-days" size="14" />
                     Período
                 </label>
-                <x-ui.select name="periodo">
+                <x-ui.select name="periodo" data-auto-submit>
                     <option value="">Todo el historial</option>
                     <option value="este_mes" @selected($periodo === "este_mes")>
                         Este mes
@@ -115,12 +133,8 @@
                     </option>
                 </x-ui.select>
             </div>
-            <x-ui.button type="submit" variant="outline" size="small">
-                <x-ui.icon name="sliders-horizontal" size="15" />
-                Aplicar filtros
-            </x-ui.button>
         </div>
-        @if ($buscar || $clienteId || $estado || $periodo)
+        @if ($buscar || $clienteId || $plantaId || $estado || $periodo)
             <x-ui.button
                 :href="route('cotizaciones.index')"
                 variant="danger"
@@ -135,11 +149,11 @@
         @if ($cotizaciones->isEmpty())
             <x-ui.empty-state
                 icon="file"
-                :title="$buscar || $clienteId || $estado || $periodo ? 'No hay coincidencias' : 'No hay cotizaciones'"
-                :description="$buscar || $clienteId || $estado || $periodo ? 'Prueba modificando la búsqueda o los filtros aplicados.' : 'Crea una propuesta y registra los criterios usados para definir cada valor.'"
+                :title="$buscar || $clienteId || $plantaId || $estado || $periodo ? 'No hay coincidencias' : 'No hay cotizaciones'"
+                :description="$buscar || $clienteId || $plantaId || $estado || $periodo ? 'Prueba modificando la búsqueda o los filtros aplicados.' : 'Crea una propuesta y registra los criterios usados para definir cada valor.'"
             >
                 <x-slot:action>
-                    @if ($buscar || $clienteId || $estado || $periodo)
+                    @if ($buscar || $clienteId || $plantaId || $estado || $periodo)
                         <x-ui.button
                             :href="route('cotizaciones.index')"
                             variant="outline"
@@ -170,14 +184,7 @@
                                     :direction="$direccion"
                                 />
                             </th>
-                            <th>
-                                <x-ui.sort-link
-                                    field="cliente"
-                                    label="Cliente"
-                                    :current="$orden"
-                                    :direction="$direccion"
-                                />
-                            </th>
+                            <th>Planta / organización</th>
                             <th>Encargado</th>
                             <th>Revisión</th>
                             <th>Total</th>
@@ -194,16 +201,19 @@
                                     </span>
                                     <span class="quote-index-table__proposal-copy">
                                         <span class="table-primary">
-                                            {{ $cotizacion->revisionActual?->titulo ?? "Sin título" }}
+                                            {{ $cotizacion->codigo }}
                                         </span>
                                         <span class="table-secondary">
-                                            {{ $cotizacion->codigo }}
+                                            {{ $cotizacion->revisionActual?->titulo ?? "Sin título" }}
                                         </span>
                                     </span>
                                 </td>
                                 <td class="quote-index-table__client">
-                                    <x-ui.icon name="building-2" size="15" />
-                                    <span>{{ $cotizacion->cliente->nombre_display }}</span>
+                                    <x-ui.icon name="factory" size="15" />
+                                    <span>
+                                        <span class="table-primary">{{ $cotizacion->planta?->nombre ?? 'Planta por asignar' }}</span>
+                                        <span class="table-secondary">{{ $cotizacion->cliente->nombre_display }}</span>
+                                    </span>
                                 </td>
                                 <td>
                                     <x-ui.contact-summary

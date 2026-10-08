@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Servicio extends Model
@@ -66,5 +67,11 @@ class Servicio extends Model
     public function inclusionesCotizacion(): HasMany
     {
         return $this->hasMany(RevisionServicio::class);
+    }
+
+    public function documentos(): MorphToMany
+    {
+        return $this->morphToMany(Documento::class, 'vinculable', 'documento_vinculos')
+            ->withTimestamps();
     }
 }

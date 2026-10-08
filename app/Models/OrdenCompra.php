@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class OrdenCompra extends Model
 {
@@ -49,5 +50,11 @@ class OrdenCompra extends Model
         return $this->hasMany(Factura::class)
             ->latest('fecha_emision')
             ->latest('id');
+    }
+
+    public function documentos(): MorphToMany
+    {
+        return $this->morphToMany(Documento::class, 'vinculable', 'documento_vinculos')
+            ->withTimestamps();
     }
 }

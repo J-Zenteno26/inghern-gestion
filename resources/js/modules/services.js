@@ -64,5 +64,3 @@ serviceTypeSelect?.addEventListener('change', updateServiceCatalog);
 serviceCatalogSelect?.addEventListener('change', updateServiceCatalog);
 updateServiceCatalog();
 }
-
-
