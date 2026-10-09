@@ -489,12 +489,16 @@
                                     <strong>{{ number_format($cantidadFacturas, 0, ',', '.') }}</strong>
                                 </div>
                                 <div>
-                                    <span>Neto facturado</span>
-                                    <strong>{{ $formatMoney($netoFacturado) }}</strong>
+                                    <span>Total facturado</span>
+                                    <strong>{{ $formatMoney($totalFacturado) }}</strong>
                                 </div>
-                                <div class="{{ $saldoNetoPorFacturar < 0 ? 'is-over' : '' }}">
+                                <div class="{{ $saldoFacturacion < 0 ? 'is-over' : '' }}">
                                     <span>Saldo por facturar</span>
-                                    <strong>{{ $formatMoney($saldoNetoPorFacturar) }}</strong>
+                                    <strong>{{ $formatMoney($saldoFacturacion) }}</strong>
+                                </div>
+                                <div>
+                                    <span>Estado de facturación</span>
+                                    <strong><x-ui.badge :status="$estadoFacturacion" /></strong>
                                 </div>
                                 <div>
                                     <span>Última factura</span>
@@ -514,9 +518,9 @@
                                 </span>
                             </div>
 
-                            @if ($saldoNetoPorFacturar < 0)
+                            @if ($saldoFacturacion < 0)
                                 <div class="quote-invoices__warning" role="alert">
-                                    El neto facturado sobrepasa el monto de la OC en {{ $formatMoney(abs($saldoNetoPorFacturar)) }}.
+                                    El total facturado sobrepasa el monto de la OC en {{ $formatMoney(abs($saldoFacturacion)) }}.
                                 </div>
                             @endif
                         </section>

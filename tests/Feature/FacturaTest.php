@@ -65,10 +65,15 @@ class FacturaTest extends TestCase
             ->assertOk()
             ->assertSeeText('F-1001')
             ->assertSeeText('CLP $119.000')
-            ->assertSeeText('Crédito · 45 días');
+            ->assertSeeText('Crédito · 45 días')
+            ->assertSeeText('Estado documental')
+            ->assertSeeText('Estado de pago')
+            ->assertSeeText('Total pagado')
+            ->assertSeeText('CLP $0')
+            ->assertSeeText('pendiente');
     }
 
-    public function test_purchase_order_supports_multiple_partial_invoices_and_shows_net_balance(): void
+    public function test_purchase_order_supports_multiple_partial_invoices_and_shows_total_balance(): void
     {
         [$user, $cotizacion, $ordenCompra] = $this->crearContexto();
 
@@ -80,18 +85,71 @@ class FacturaTest extends TestCase
             ->get(route('cotizaciones.show', $cotizacion))
             ->assertOk()
             ->assertSeeText('F-2002')
-            ->assertSeeText('CLP $600.000')
-            ->assertSeeText('CLP $400.000')
+            ->assertSeeText('CLP $714.000')
+            ->assertSeeText('CLP $286.000')
+            ->assertSeeText('facturacion parcial')
             ->assertSeeText('Gestionar facturas');
         $this->actingAs($user)
             ->get(route('facturas.index', ['oc' => $ordenCompra->id]))
             ->assertOk()
             ->assertSeeText('F-2001')
             ->assertSeeText('F-2002')
+            ->assertSeeText('Pagado')
+            ->assertSeeText('Saldo pendiente')
+            ->assertSeeText('Estado de pago')
+            ->assertSeeText('pendiente')
             ->assertSeeText('Vista filtrada por OC');
     }
 
-    public function test_invoice_over_purchase_order_amount_is_allowed_and_shows_warning(): void
+    public function test_purchase_order_uses_valid_invoice_totals_for_its_billing_state(): void
+    {
+        [$user, $cotizacion, $ordenCompra] = $this->crearContexto();
+        $ordenCompra->update([
+            'numero' => 'COT-LINDE-0015',
+            'monto' => 1463700,
+        ]);
+        $this->registrarFactura($user, $ordenCompra, 'F-LINDE-VALIDA', 984000);
+        $this->registrarFactura($user, $ordenCompra, 'F-LINDE-ANULADA', 246000);
+        Factura::query()
+            ->where('folio', 'F-LINDE-ANULADA')
+            ->update(['estado' => 'anulada']);
+
+        $ordenCompra->refresh()->load('facturas');
+
+        $this->assertSame(1170960.0, $ordenCompra->totalFacturado());
+        $this->assertSame(292740.0, $ordenCompra->saldoFacturacion());
+        $this->assertSame(80.0, $ordenCompra->porcentajeFacturado());
+        $this->assertSame('facturacion_parcial', $ordenCompra->estadoFacturacion());
+        $this->actingAs($user)
+            ->get(route('cotizaciones.show', $cotizacion))
+            ->assertSeeText('CLP $1.463.700')
+            ->assertSeeText('CLP $1.170.960')
+            ->assertSeeText('CLP $292.740')
+            ->assertSeeText('80%')
+            ->assertSeeText('facturacion parcial');
+    }
+
+    public function test_purchase_order_reports_complete_and_overbilled_states_from_invoice_totals(): void
+    {
+        [$user, , $ordenCompra] = $this->crearContexto();
+        $ordenCompra->update(['monto' => 1463700]);
+        $this->registrarFactura($user, $ordenCompra, 'F-COMPLETA', 1230000);
+
+        $ordenCompra->refresh()->load('facturas');
+
+        $this->assertSame(1463700.0, $ordenCompra->totalFacturado());
+        $this->assertSame(0.0, $ordenCompra->saldoFacturacion());
+        $this->assertSame(100.0, $ordenCompra->porcentajeFacturado());
+        $this->assertSame('facturacion_completa', $ordenCompra->estadoFacturacion());
+
+        $this->registrarFactura($user, $ordenCompra, 'F-EXCEDENTE', 100000);
+        $ordenCompra->refresh()->load('facturas');
+
+        $this->assertSame('sobrefacturada', $ordenCompra->estadoFacturacion());
+        $this->assertSame(-119000.0, $ordenCompra->saldoFacturacion());
+    }
+
+    public function test_invoice_total_over_purchase_order_amount_is_allowed_and_shows_warning(): void
     {
         [$user, $cotizacion, $ordenCompra] = $this->crearContexto();
 
@@ -101,8 +159,8 @@ class FacturaTest extends TestCase
         $this->actingAs($user)
             ->get(route('cotizaciones.show', $cotizacion))
             ->assertOk()
-            ->assertSeeText('El neto facturado sobrepasa el monto de la OC en CLP $100.000.')
-            ->assertSeeText('CLP $-100.000');
+            ->assertSeeText('El total facturado sobrepasa el monto de la OC en CLP $309.000.')
+            ->assertSeeText('CLP $-309.000');
     }
 
     public function test_invoice_folio_cannot_be_repeated_for_the_same_organization(): void
@@ -162,7 +220,8 @@ class FacturaTest extends TestCase
             ->get(route('facturas.show', $factura))
             ->assertOk()
             ->assertSeeText('Fecha de pago informada')
-            ->assertSeeText('con fecha de pago')
+            ->assertSeeText('pendiente')
+            ->assertDontSeeText('con fecha de pago')
             ->assertSeeText('Editar fecha');
     }
 

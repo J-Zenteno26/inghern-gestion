@@ -13,6 +13,13 @@
                 default => '$'.number_format($amount, 0, ',', '.'),
             };
         };
+        $paymentTone = static fn (string $status): string => match ($status) {
+            'pagada' => 'success',
+            'pago_parcial' => 'info',
+            'sobrepagada' => 'warning',
+            'anulada' => 'danger',
+            default => 'neutral',
+        };
         $hayFiltros = $buscar || $clienteId || $plantaId || $estado || $periodo || $ordenCompraFiltro;
     @endphp
 
@@ -42,7 +49,7 @@
                 <x-ui.metric
                     label="Saldo por facturar"
                     :value="$formatMoney($metricas['saldo_por_facturar'])"
-                    detail="Saldo neto pendiente de las OC"
+                    detail="Saldo total pendiente de las OC"
                     tone="petroleo"
                     icon="calculator"
                 />
@@ -55,7 +62,7 @@
                 <x-ui.metric
                     label="OC con facturación parcial"
                     :value="number_format($metricas['oc_parciales'], 0, ',', '.')"
-                    detail="Con saldo neto aún disponible"
+                    detail="Con saldo total aún disponible"
                     tone="petroleo"
                     icon="file-text"
                 />
@@ -209,18 +216,21 @@
                                 <th>Organización</th>
                                 <th>OC</th>
                                 <th>Emisión</th>
-                                <th>Neto</th>
                                 <th>Total</th>
-                                <th>Estado</th>
+                                <th>Pagado</th>
+                                <th>Saldo pendiente</th>
+                                <th>Estado documental</th>
+                                <th>Estado de pago</th>
                                 <th>Acción</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($facturas as $factura)
                                 @php
-                                    $avance = (float) $factura->ordenCompra->monto > 0
-                                        ? ((float) ($factura->ordenCompra->neto_facturado ?? 0) / (float) $factura->ordenCompra->monto) * 100
-                                        : 0;
+                                    $avance = $factura->ordenCompra->porcentajeFacturado();
+                                    $totalPagado = $factura->totalPagado();
+                                    $saldoPago = $factura->saldoPago();
+                                    $estadoPago = $factura->estadoPago();
                                 @endphp
                                 <tr>
                                     <td>
@@ -241,9 +251,11 @@
                                         </div>
                                     </td>
                                     <td>{{ $factura->fecha_emision->format('d/m/Y') }}</td>
-                                    <td class="numeric invoice-money">{{ $formatMoney($factura->monto_neto, $factura->moneda) }}</td>
                                     <td class="numeric invoice-money">{{ $formatMoney($factura->total, $factura->moneda) }}</td>
-                                    <td><x-ui.badge :status="$factura->estado" tone="info" /></td>
+                                    <td class="numeric invoice-money">{{ $formatMoney($totalPagado, $factura->moneda) }}</td>
+                                    <td class="numeric invoice-money">{{ $formatMoney($saldoPago, $factura->moneda) }}</td>
+                                    <td><x-ui.badge :status="$factura->estado" :tone="$factura->estado === 'anulada' ? 'danger' : 'info'" /></td>
+                                    <td><x-ui.badge :status="$estadoPago" :tone="$paymentTone($estadoPago)" /></td>
                                     <td>
                                         <x-ui.button :href="route('facturas.show', $factura)" variant="ghost" size="small">
                                             Ver

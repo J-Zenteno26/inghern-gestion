@@ -332,8 +332,8 @@
                             >
                                 @foreach ($ordenesCompra as $ordenCompra)
                                     @php
-                                        $netoFacturadoOc = (float) ($ordenCompra->neto_facturado ?? 0);
-                                        $saldoOc = (float) $ordenCompra->monto - $netoFacturadoOc;
+                                        $totalFacturadoOc = $ordenCompra->totalFacturado();
+                                        $saldoOc = $ordenCompra->saldoFacturacion();
                                     @endphp
                                     <button
                                         type="button"
@@ -345,7 +345,7 @@
                                         data-label="{{ $ordenCompra->numero }} · {{ $ordenCompra->cliente->nombre_display }}"
                                         data-organizacion="{{ $ordenCompra->cliente->nombre_display }}"
                                         data-monto="{{ (float) $ordenCompra->monto }}"
-                                        data-facturado="{{ $netoFacturadoOc }}"
+                                        data-facturado="{{ $totalFacturadoOc }}"
                                         data-saldo="{{ $saldoOc }}"
                                         data-iva="{{ (float) $ordenCompra->cotizacion->revisionActual->iva_porcentaje }}"
                                         data-moneda="{{ $ordenCompra->cotizacion->revisionActual->moneda }}"
@@ -475,7 +475,7 @@
                         </div>
                         <div>
                             <x-ui.icon name="banknote" size="16" />
-                            <span>Neto ya facturado</span>
+                            <span>Total ya facturado</span>
                             <strong data-invoice-billed>—</strong>
                         </div>
                         <div>

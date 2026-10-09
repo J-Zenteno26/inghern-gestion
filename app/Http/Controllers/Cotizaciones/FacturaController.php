@@ -24,7 +24,10 @@ class FacturaController extends Controller
         $estado = (string) $request->query('estado', '');
         $periodo = (string) $request->query('periodo', '');
         $ordenCompraId = $request->integer('oc');
-        $estados = ['emitida' => 'Emitida'];
+        $estados = [
+            'emitida' => 'Emitida',
+            'anulada' => 'Anulada',
+        ];
 
         if (! array_key_exists($estado, $estados)) {
             $estado = '';
@@ -51,33 +54,34 @@ class FacturaController extends Controller
 
         $resumenOrdenes = OrdenCompra::query()
             ->where('estado', 'registrada')
-            ->withSum('facturas as neto_facturado', 'monto_neto')
+            ->withSum(
+                ['facturas as total_facturado' => fn ($query) => $query->where('estado', '!=', 'anulada')],
+                'total',
+            )
             ->get(['id', 'monto']);
 
         $inicioMes = now()->startOfMonth();
         $finMes = now()->endOfMonth();
         $metricas = [
             'facturado_mes' => (float) Factura::query()
+                ->where('estado', '!=', 'anulada')
                 ->whereBetween('fecha_emision', [$inicioMes, $finMes])
                 ->sum('monto_neto'),
             'saldo_por_facturar' => $resumenOrdenes->sum(
-                fn (OrdenCompra $ordenCompra) => max(
-                    (float) $ordenCompra->monto - (float) ($ordenCompra->neto_facturado ?? 0),
-                    0,
-                ),
+                fn (OrdenCompra $ordenCompra) => max($ordenCompra->saldoFacturacion(), 0),
             ),
             'emitidas_mes' => Factura::query()
+                ->where('estado', '!=', 'anulada')
                 ->whereBetween('fecha_emision', [$inicioMes, $finMes])
                 ->count(),
-            'oc_parciales' => $resumenOrdenes->filter(function (OrdenCompra $ordenCompra) {
-                $netoFacturado = (float) ($ordenCompra->neto_facturado ?? 0);
-
-                return $netoFacturado > 0 && $netoFacturado < (float) $ordenCompra->monto;
-            })->count(),
+            'oc_parciales' => $resumenOrdenes
+                ->filter(fn (OrdenCompra $ordenCompra) => $ordenCompra->estadoFacturacion() === 'facturacion_parcial')
+                ->count(),
         ];
 
         $inicioGrafico = now()->startOfMonth()->subMonths(11);
         $totalesPorMes = Factura::query()
+            ->where('estado', '!=', 'anulada')
             ->where('fecha_emision', '>=', $inicioGrafico)
             ->get(['fecha_emision', 'monto_neto'])
             ->groupBy(fn (Factura $factura) => $factura->fecha_emision->format('Y-m'))
@@ -104,8 +108,12 @@ class FacturaController extends Controller
                 'cliente',
                 'ordenCompra' => fn ($query) => $query
                     ->with('cotizacion.planta')
-                    ->withSum('facturas as neto_facturado', 'monto_neto'),
+                    ->withSum(
+                        ['facturas as total_facturado' => fn ($query) => $query->where('estado', '!=', 'anulada')],
+                        'total',
+                    ),
             ])
+            ->withSum('pagos as total_pagado', 'pago_factura.monto_asignado')
             ->when(
                 $buscar,
                 fn ($query) => $query->where(
@@ -171,7 +179,10 @@ class FacturaController extends Controller
             ->where('estado', 'registrada')
             ->whereHas('cotizacion.revisionActual')
             ->with(['cliente', 'cotizacion.revisionActual'])
-            ->withSum('facturas as neto_facturado', 'monto_neto')
+            ->withSum(
+                ['facturas as total_facturado' => fn ($query) => $query->where('estado', '!=', 'anulada')],
+                'total',
+            )
             ->latest('fecha')
             ->get();
         $ordenCompraSeleccionada = $ordenesCompra->firstWhere(
@@ -207,6 +218,7 @@ class FacturaController extends Controller
     public function show(Factura $factura): View
     {
         $factura->load(['cliente', 'ordenCompra.cotizacion']);
+        $factura->loadSum('pagos as total_pagado', 'pago_factura.monto_asignado');
 
         return view('facturas.show', ['factura' => $factura]);
     }

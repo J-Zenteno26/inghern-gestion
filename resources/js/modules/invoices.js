@@ -57,13 +57,18 @@ export function initInvoices() {
         const taxRate = Number(option.dataset.iva || 0);
 
         if (prefillNet) {
-            setNetAmount(balance);
+            const netBalance = Math.max(
+                Math.round((balance / (1 + taxRate / 100)) * 100) / 100,
+                0,
+            );
+
+            setNetAmount(netBalance);
         }
 
         const net = Number(netInput?.value || 0);
         const tax = Math.round((net * taxRate / 100) * 100) / 100;
         const total = net + tax;
-        const resultingBalance = balance - net;
+        const resultingBalance = balance - total;
 
         setText('[data-invoice-organization]', option.dataset.organizacion || '—');
         setText('[data-invoice-order-amount]', money(orderAmount, currency));
@@ -76,7 +81,7 @@ export function initInvoices() {
         setText('[data-invoice-net-currency]', `${currency} $`);
 
         const warning = form.querySelector('[data-invoice-warning]');
-        if (warning) warning.hidden = net <= 0 || resultingBalance >= 0;
+        if (warning) warning.hidden = total <= 0 || resultingBalance >= 0;
     }
 
     function openOrderList() {

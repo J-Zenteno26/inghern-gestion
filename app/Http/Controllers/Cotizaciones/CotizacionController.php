@@ -366,23 +366,18 @@ class CotizacionController extends Controller
             'revisionActual.servicios.servicio.plantas',
         ]);
 
-        $facturasOrdenCompra = $cotizacion->ordenCompra?->facturas;
-        $netoFacturado = (float) ($facturasOrdenCompra?->sum('monto_neto') ?? 0);
-        $saldoNetoPorFacturar = $cotizacion->ordenCompra
-            ? (float) $cotizacion->ordenCompra->monto - $netoFacturado
-            : 0;
-        $avanceFacturacion = $cotizacion->ordenCompra && (float) $cotizacion->ordenCompra->monto > 0
-            ? ($netoFacturado / (float) $cotizacion->ordenCompra->monto) * 100
-            : 0;
+        $ordenCompra = $cotizacion->ordenCompra;
+        $facturasValidas = $ordenCompra?->facturas->where('estado', '!=', 'anulada');
 
         return view('cotizaciones.show', [
             'cotizacion' => $cotizacion,
             'revisionActual' => $cotizacion->revisionActual,
-            'netoFacturado' => $netoFacturado,
-            'saldoNetoPorFacturar' => $saldoNetoPorFacturar,
-            'cantidadFacturas' => $facturasOrdenCompra?->count() ?? 0,
-            'ultimaFactura' => $facturasOrdenCompra?->first(),
-            'avanceFacturacion' => $avanceFacturacion,
+            'totalFacturado' => $ordenCompra?->totalFacturado() ?? 0,
+            'saldoFacturacion' => $ordenCompra?->saldoFacturacion() ?? 0,
+            'cantidadFacturas' => $facturasValidas?->count() ?? 0,
+            'ultimaFactura' => $facturasValidas?->first(),
+            'avanceFacturacion' => $ordenCompra?->porcentajeFacturado() ?? 0,
+            'estadoFacturacion' => $ordenCompra?->estadoFacturacion() ?? 'sin_facturar',
             'plantasDisponibles' => $cotizacion->cliente->plantas()->orderBy('nombre')->get(),
         ]);
     }

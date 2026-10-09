@@ -8,14 +8,19 @@
             'contado' => 'Al contado',
             default => 'Sin registrar',
         };
-        $estadoVisual = match (true) {
-            $factura->estado === 'anulada' => 'anulada',
-            $factura->fecha_pago_informada_cliente !== null => 'con_fecha_de_pago',
-            default => 'emitida',
-        };
-        $tonoEstado = match ($estadoVisual) {
+        $totalPagado = $factura->totalPagado();
+        $saldoPago = $factura->saldoPago();
+        $estadoPago = $factura->estadoPago();
+        $tonoEstadoDocumental = match ($factura->estado) {
             'anulada' => 'danger',
             default => 'info',
+        };
+        $tonoEstadoPago = match ($estadoPago) {
+            'pagada' => 'success',
+            'pago_parcial' => 'info',
+            'sobrepagada' => 'warning',
+            'anulada' => 'danger',
+            default => 'neutral',
         };
     @endphp
 
@@ -26,6 +31,16 @@
             description="Detalle comercial del documento emitido."
         >
             <x-slot:actions>
+                @if ($factura->estado !== 'anulada')
+                    <x-ui.button
+                        variant="danger"
+                        disabled
+                        aria-disabled="true"
+                        title="La anulación requiere un flujo seguro con trazabilidad"
+                    >
+                        Anular factura
+                    </x-ui.button>
+                @endif
                 <x-ui.button :href="route('facturas.index')" variant="outline">Volver a facturas</x-ui.button>
             </x-slot:actions>
         </x-ui.page-header>
@@ -41,7 +56,7 @@
                         </div>
                     </div>
                 </x-slot:title>
-                <x-slot:actions><x-ui.badge :status="$estadoVisual" :tone="$tonoEstado" /></x-slot:actions>
+                <x-slot:actions><x-ui.badge :status="$factura->estado" :tone="$tonoEstadoDocumental" /></x-slot:actions>
 
                 <details
                     class="invoice-payment-date {{ $factura->fecha_pago_informada_cliente ? 'invoice-payment-date--registered' : '' }}"
@@ -104,6 +119,8 @@
                     <div><dt>Orden de compra</dt><dd>{{ $factura->ordenCompra->numero }}</dd></div>
                     <div><dt>Fecha de emisión</dt><dd>{{ $factura->fecha_emision->format('d/m/Y') }}</dd></div>
                     <div><dt>Moneda</dt><dd>{{ $factura->moneda }}</dd></div>
+                    <div><dt>Estado documental</dt><dd><x-ui.badge :status="$factura->estado" :tone="$tonoEstadoDocumental" /></dd></div>
+                    <div><dt>Estado de pago</dt><dd><x-ui.badge :status="$estadoPago" :tone="$tonoEstadoPago" /></dd></div>
                     <div>
                         <dt>Condición de pago</dt>
                         <dd>
@@ -115,7 +132,10 @@
                     </div>
                     <div><dt>Neto</dt><dd class="invoice-money">{{ $formatMoney($factura->monto_neto) }}</dd></div>
                     <div><dt>IVA ({{ number_format((float) $factura->iva_porcentaje, 2, ',', '.') }}%)</dt><dd>{{ $formatMoney($factura->iva) }}</dd></div>
-                    <div class="invoice-detail-grid__total"><dt>Total</dt><dd>{{ $formatMoney($factura->total) }}</dd></div>
+                    <div class="invoice-detail-grid__total"><dt>Total factura</dt><dd>{{ $formatMoney($factura->total) }}</dd></div>
+                    <div><dt>Total pagado</dt><dd class="invoice-money">{{ $formatMoney($totalPagado) }}</dd></div>
+                    <div><dt>Saldo pendiente</dt><dd class="invoice-money">{{ $formatMoney($saldoPago) }}</dd></div>
+                    <div><dt>Fecha de pago informada por cliente</dt><dd>{{ $factura->fecha_pago_informada_cliente?->format('d/m/Y') ?? 'Sin informar' }}</dd></div>
                     <div class="invoice-detail-grid__wide"><dt>Observación</dt><dd>{{ $factura->observacion ?: 'Sin observación' }}</dd></div>
                 </dl>
             </x-ui.panel>
