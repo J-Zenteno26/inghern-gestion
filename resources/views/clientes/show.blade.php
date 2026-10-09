@@ -1,7 +1,7 @@
 @extends("layouts.app")
 @section("title", $cliente->nombre_display)
 @section("content")
-    @php
+    <?php
         $serviciosActivos = $cliente->servicios->whereIn('estado', ['activo', 'en_curso', 'planificado'])->count();
         $cotizacionesAbiertas = $cliente->cotizaciones->whereNotIn('estado', ['aceptada', 'aprobada', 'rechazada', 'anulada', 'cancelado'])->count();
         $contactoPrincipal = $cliente->contactos->firstWhere('es_principal', true) ?? $cliente->contactos->first();
@@ -13,7 +13,7 @@
         $tiposDocumento = \App\Models\Documento::TIPOS;
         $cotizacionesPorAsignar = $cliente->cotizaciones->whereNull('planta_id')->count();
         $serviciosPorAsignar = $cliente->servicios->filter(fn ($servicio) => $servicio->plantas->isEmpty())->count();
-    @endphp
+    ?>
 
     <section class="organization-hero">
         <div class="organization-hero__identity">
@@ -25,10 +25,10 @@
                 <h1 class="organization-hero__title">{{ $cliente->nombre_display }}</h1>
                 <div class="organization-hero__meta">
                     <span>{{ $cliente->razon_social }}</span>
-                    @if ($cliente->identificador_tributario)
+                    <?php if ($cliente->identificador_tributario): ?>
                         <span class="organization-hero__dot">•</span>
                         <span>{{ $cliente->identificador_tributario }}</span>
-                    @endif
+                    <?php endif; ?>
                     <x-ui.badge :status="$cliente->estado" />
                 </div>
             </div>
@@ -94,8 +94,9 @@
             <span class="organization-plants__count">{{ $cliente->plantas->count() }}</span>
         </header>
         <div class="organization-plant-grid">
-            @forelse ($cliente->plantas as $planta)
-                @php($serviciosActivosPlanta = $planta->servicios->whereIn('estado', ['prospecto', 'planificado', 'en_curso', 'en_pausa', 'activo'])->count())
+            <?php if ($cliente->plantas->isNotEmpty()): ?>
+                <?php foreach ($cliente->plantas as $planta): ?>
+                <?php $serviciosActivosPlanta = $planta->servicios->whereIn('estado', ['prospecto', 'planificado', 'en_curso', 'en_pausa', 'activo'])->count(); ?>
                 <article class="organization-plant-card">
                     <div class="organization-plant-card__header">
                         <span><x-ui.icon name="factory" size="21" /></span>
@@ -110,25 +111,26 @@
                     </dl>
                     <x-ui.button :href="route('plantas.show', $planta)" variant="secondary" size="small">Abrir planta <x-ui.icon name="arrow" size="14" /></x-ui.button>
                 </article>
-            @empty
+                <?php endforeach; ?>
+            <?php else: ?>
                 <p class="organization-plants__empty">Esta organización aún no tiene plantas registradas.</p>
-            @endforelse
+            <?php endif; ?>
         </div>
     </section>
 
-    @if ($cotizacionesPorAsignar > 0 || $serviciosPorAsignar > 0)
+    <?php if ($cotizacionesPorAsignar > 0 || $serviciosPorAsignar > 0): ?>
         <section class="organization-unassigned">
             <div><span><x-ui.icon name="sliders-horizontal" size="18" /></span><div><h2>Por organizar</h2><p>Registros que todavía no tienen contexto de Planta.</p></div></div>
             <div class="organization-unassigned__actions">
-                @if ($cotizacionesPorAsignar > 0)
+                <?php if ($cotizacionesPorAsignar > 0): ?>
                     <x-ui.button :href="route('cotizaciones.index', ['cliente' => $cliente->id])" variant="outline" size="small">{{ $cotizacionesPorAsignar }} cotización{{ $cotizacionesPorAsignar === 1 ? '' : 'es' }}</x-ui.button>
-                @endif
-                @if ($serviciosPorAsignar > 0)
+                <?php endif; ?>
+                <?php if ($serviciosPorAsignar > 0): ?>
                     <x-ui.button :href="route('servicios.index', ['cliente' => $cliente->id])" variant="outline" size="small">{{ $serviciosPorAsignar }} servicio{{ $serviciosPorAsignar === 1 ? '' : 's' }}</x-ui.button>
-                @endif
+                <?php endif; ?>
             </div>
         </section>
-    @endif
+    <?php endif; ?>
 
     <div class="organization-layout">
         <div class="organization-main">
@@ -154,9 +156,7 @@
                 </button>
 
                 <div class="organization-panel__content" id="organization-services-content" data-org-accordion-content hidden>
-                    @if ($cliente->servicios->isEmpty())
-                        <x-ui.empty-state icon="briefcase" title="Sin servicios asociados" description="Crea un servicio para iniciar el seguimiento del trabajo con esta organización." />
-                    @else
+                    <?php if ($cliente->servicios->isNotEmpty()): ?>
                         <div class="organization-filterbar">
                             <label class="organization-search">
                                 <x-ui.icon name="search" />
@@ -166,18 +166,18 @@
                                 <span>Tipo</span>
                                 <select class="ui-control" data-org-services-type>
                                     <option value="">Todos los tipos</option>
-                                    @foreach ($tiposServicio as $tipo)
+                                    <?php foreach ($tiposServicio as $tipo): ?>
                                         <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
-                                    @endforeach
+                                    <?php endforeach; ?>
                                 </select>
                             </label>
                             <label class="organization-filter">
                                 <span>Estado</span>
                                 <select class="ui-control" data-org-services-status>
                                     <option value="">Todos los estados</option>
-                                    @foreach ($estadosServicio as $estado)
+                                    <?php foreach ($estadosServicio as $estado): ?>
                                         <option value="{{ $estado }}">{{ ucfirst(str_replace('_', ' ', $estado)) }}</option>
-                                    @endforeach
+                                    <?php endforeach; ?>
                                 </select>
                             </label>
                             <button class="organization-filterbar__clear" type="button" data-org-services-clear title="Limpiar filtros">
@@ -197,8 +197,8 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($cliente->servicios as $servicio)
-                                        @php
+                                    <?php foreach ($cliente->servicios as $servicio): ?>
+                                        <?php
                                             $nombresPlantas = $servicio->plantas->pluck('nombre')->filter()->values();
                                             $searchServicio = mb_strtolower(collect([
                                                 $servicio->codigo,
@@ -206,7 +206,7 @@
                                                 $servicio->tipo?->nombre,
                                                 $nombresPlantas->join(' '),
                                             ])->filter()->join(' '));
-                                        @endphp
+                                        ?>
                                         <tr data-org-service-row data-search="{{ $searchServicio }}" data-type="{{ $servicio->tipo_servicio_id }}" data-status="{{ $servicio->estado }}">
                                             <td class="organization-table__service">
                                                 <span class="organization-table__code">{{ $servicio->codigo }}</span>
@@ -214,12 +214,12 @@
                                             </td>
                                             <td>{{ $servicio->tipo?->nombre ?? 'Sin clasificar' }}</td>
                                             <td class="organization-table__coverage">
-                                                @if ($servicio->plantas->count() === 1)
+                                                <?php if ($servicio->plantas->count() === 1): ?>
                                                     <span class="organization-coverage organization-coverage--single">
                                                         <x-ui.icon name="map-pin" size="15" />
                                                         {{ $servicio->plantas->first()->nombre }}
                                                     </span>
-                                                @elseif ($servicio->plantas->count() > 1)
+                                                <?php elseif ($servicio->plantas->count() > 1): ?>
                                                     <span class="organization-tooltip" tabindex="0">
                                                         <span class="organization-coverage organization-coverage--multiple">
                                                             <x-ui.icon name="map-pin" size="15" />
@@ -227,19 +227,19 @@
                                                         </span>
                                                         <span class="organization-tooltip__content" role="tooltip">
                                                             <strong>Cobertura del servicio</strong>
-                                                            @foreach ($servicio->plantas as $planta)
+                                                            <?php foreach ($servicio->plantas as $planta): ?>
                                                                 <span>{{ $planta->nombre }}</span>
-                                                            @endforeach
+                                                            <?php endforeach; ?>
                                                         </span>
                                                     </span>
-                                                @else
+                                                <?php else: ?>
                                                     <span class="organization-coverage organization-coverage--empty">Sin planta asociada</span>
-                                                @endif
+                                                <?php endif; ?>
                                             </td>
                                             <td><x-ui.badge :status="$servicio->estado" /></td>
                                             <td class="organization-table__open"><a href="{{ route('servicios.show', $servicio) }}" aria-label="Abrir servicio"><x-ui.icon name="arrow" size="17" /></a></td>
                                         </tr>
-                                    @endforeach
+                                    <?php endforeach; ?>
                                 </tbody>
                             </table>
                             <div class="organization-no-results" data-org-services-empty hidden>
@@ -248,7 +248,15 @@
                                 <span>Prueba con otro texto o limpia los filtros.</span>
                             </div>
                         </div>
-                    @endif
+                    <?php else: ?>
+
+                        <x-ui.empty-state
+                            icon="briefcase"
+                            title="Sin servicios asociados"
+                            description="Crea un servicio para iniciar el seguimiento del trabajo con esta organización."
+                        />
+
+                    <?php endif; ?>
                 </div>
             </section>
 
@@ -274,9 +282,9 @@
                 </button>
 
                 <div class="organization-panel__content" id="organization-quotes-content" data-org-accordion-content hidden>
-                @if ($cliente->cotizaciones->isEmpty())
+                <?php if ($cliente->cotizaciones->isEmpty()): ?>
                     <x-ui.empty-state icon="file" title="Sin cotizaciones" description="Las propuestas comerciales de esta organización aparecerán aquí." />
-                @else
+                <?php else: ?>
                     <div class="organization-filterbar organization-filterbar--quotes">
                         <label class="organization-search">
                             <x-ui.icon name="search" />
@@ -286,9 +294,9 @@
                             <span>Estado</span>
                             <select class="ui-control" data-org-quotes-status>
                                 <option value="">Todos los estados</option>
-                                @foreach ($estadosCotizacion as $estado)
+                                <?php foreach ($estadosCotizacion as $estado): ?>
                                     <option value="{{ $estado }}">{{ ucfirst(str_replace('_', ' ', $estado)) }}</option>
-                                @endforeach
+                                <?php endforeach; ?>
                             </select>
                         </label>
                         <button class="organization-filterbar__clear" type="button" data-org-quotes-clear title="Limpiar filtros">
@@ -308,11 +316,11 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($cliente->cotizaciones as $cotizacion)
-                                    @php
+                                <?php foreach ($cliente->cotizaciones as $cotizacion): ?>
+                                    <?php
                                         $tituloCotizacion = $cotizacion->revisionActual?->titulo ?: 'Sin título';
                                         $searchCotizacion = mb_strtolower($cotizacion->codigo.' '.$tituloCotizacion);
-                                    @endphp
+                                    ?>
                                     <tr data-org-quote-row data-search="{{ $searchCotizacion }}" data-status="{{ $cotizacion->estado }}">
                                         <td>
                                             <a class="table-primary" href="{{ route('cotizaciones.show', $cotizacion) }}">{{ $cotizacion->codigo }}</a>
@@ -323,7 +331,7 @@
                                         <td class="numeric text-right organization-table__money">${{ number_format($cotizacion->revisionActual?->total ?? 0, 0, ',', '.') }}</td>
                                         <td class="organization-table__open"><a href="{{ route('cotizaciones.show', $cotizacion) }}" aria-label="Abrir cotización"><x-ui.icon name="arrow" size="17" /></a></td>
                                     </tr>
-                                @endforeach
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
                         <div class="organization-no-results" data-org-quotes-empty hidden>
@@ -332,7 +340,7 @@
                             <span>Prueba con otro texto o limpia los filtros.</span>
                         </div>
                     </div>
-                @endif
+                <?php endif; ?>
                 </div>
             </section>
 
@@ -350,19 +358,19 @@
                     </div>
                 </header>
 
-                @if ($documentos->isEmpty())
+                <?php if ($documentos->isEmpty()): ?>
                     <p class="organization-document-summary__empty">Aún no hay documentos para esta organización.</p>
-                @else
+                <?php else: ?>
                     <div class="organization-document-summary">
-                        @foreach ($documentos as $documento)
+                        <?php foreach ($documentos as $documento): ?>
                             <div class="organization-document-summary__row">
                                 <span class="organization-document-summary__icon"><x-ui.icon :name="$documento->icono()" size="17" /></span>
                                 <div class="organization-document-summary__copy"><strong>{{ $documento->nombre }}</strong><span>{{ $tiposDocumento[$documento->tipo_documento] ?? ucfirst(str_replace('_', ' ', $documento->tipo_documento)) }} · {{ strtoupper($documento->extension) }} · {{ $documento->created_at?->format('d/m/Y') ?? '—' }}</span></div>
                                 <a class="organization-document-summary__download" href="{{ route('biblioteca.documentos.download', [$cliente, $documento]) }}" title="Descargar"><x-ui.icon name="download" size="16" /></a>
                             </div>
-                        @endforeach
+                        <?php endforeach; ?>
                     </div>
-                @endif
+                <?php endif; ?>
                 <div class="organization-document-summary__footer">
                     <span>{{ $totalDocumentos }} {{ $totalDocumentos === 1 ? 'documento' : 'documentos' }}</span>
                     <div class="organization-panel__header-actions">
@@ -409,22 +417,24 @@
                     <div><h2>Contactos</h2><p>{{ $cliente->contactos->count() }} registrados</p></div>
                 </header>
                 <div class="organization-contact-list">
-                    @forelse ($cliente->contactos as $contacto)
+                    <?php if ($cliente->contactos->isNotEmpty()): ?>
+                        <?php foreach ($cliente->contactos as $contacto): ?>
                         <article class="organization-contact">
                             <div class="organization-contact__avatar" aria-hidden="true"><x-ui.icon name="user-round" size="18" /></div>
                             <div class="organization-contact__copy">
                                 <div class="organization-contact__name">
                                     {{ $contacto->nombre }}
-                                    @if ($contacto->es_principal)<span class="organization-tag">Principal</span>@endif
+                                    <?php if ($contacto->es_principal): ?><span class="organization-tag">Principal</span><?php endif; ?>
                                 </div>
-                                @if ($contacto->cargo)<span>{{ $contacto->cargo }}</span>@endif
-                                @if ($contacto->email)<a href="mailto:{{ $contacto->email }}">{{ $contacto->email }}</a>@endif
-                                @if ($contacto->telefono)<a href="tel:{{ $contacto->telefono }}">{{ $contacto->telefono }}</a>@endif
+                                <?php if ($contacto->cargo): ?><span>{{ $contacto->cargo }}</span><?php endif; ?>
+                                <?php if ($contacto->email): ?><a href="mailto:{{ $contacto->email }}">{{ $contacto->email }}</a><?php endif; ?>
+                                <?php if ($contacto->telefono): ?><a href="tel:{{ $contacto->telefono }}">{{ $contacto->telefono }}</a><?php endif; ?>
                             </div>
                         </article>
-                    @empty
+                        <?php endforeach; ?>
+                    <?php else: ?>
                         <p class="organization-sidecard__empty">Sin contactos registrados.</p>
-                    @endforelse
+                    <?php endif; ?>
                 </div>
             </section>
 
@@ -434,7 +444,8 @@
                     <div><h2>Plantas</h2><p>{{ $cliente->plantas->count() }} ubicaciones</p></div>
                 </header>
                 <div class="organization-plant-list">
-                    @forelse ($cliente->plantas as $planta)
+                    <?php if ($cliente->plantas->isNotEmpty()): ?>
+                        <?php foreach ($cliente->plantas as $planta): ?>
                         <article class="organization-plant">
                             <span class="organization-plant__icon"><x-ui.icon name="map-pin" size="17" /></span>
                             <div>
@@ -442,9 +453,10 @@
                                 <span>{{ collect([$planta->comuna, $planta->ciudad, $planta->region])->filter()->join(', ') ?: 'Ubicación por completar' }}</span>
                             </div>
                         </article>
-                    @empty
+                        <?php endforeach; ?>
+                    <?php else: ?>
                         <p class="organization-sidecard__empty">Sin plantas registradas.</p>
-                    @endforelse
+                    <?php endif; ?>
                 </div>
             </section>
         </aside>
