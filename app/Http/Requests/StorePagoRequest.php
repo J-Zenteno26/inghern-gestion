@@ -29,7 +29,7 @@ class StorePagoRequest extends FormRequest
             ],
             'referencia' => ['nullable', 'string', 'max:120'],
             'observacion' => ['nullable', 'string', 'max:5000'],
-            'asignaciones' => ['required', 'array', 'list', 'min:1', 'max:2'],
+            'asignaciones' => ['required', 'array', 'list', 'min:1'],
             'asignaciones.*' => ['required', 'array:factura_id,monto_asignado'],
             'asignaciones.*.factura_id' => [
                 'required',
@@ -109,7 +109,6 @@ class StorePagoRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'asignaciones.max' => 'Un pago puede distribuirse entre un máximo de 2 facturas.',
             'asignaciones.*.factura_id.distinct' => 'No puedes seleccionar la misma factura más de una vez.',
         ];
     }

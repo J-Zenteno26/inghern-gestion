@@ -36,21 +36,29 @@ class PagoController extends Controller
                 'id',
                 'cliente_id',
                 'folio',
+                'fecha_emision',
                 'fecha_pago_informada_cliente',
                 'total',
                 'moneda',
                 'estado',
             ]);
-        $facturas = Factura::query()
-            ->with('cliente')
-            ->withSum('pagosRegistrados as total_pagado', 'pago_factura.monto_asignado')
-            ->latest('fecha_emision')
-            ->latest('id')
-            ->paginate(15);
         $inicioMes = now()->startOfMonth();
         $finMes = now()->endOfMonth();
         $facturasOperativas = $resumenFacturas
             ->reject(fn (Factura $factura) => $factura->estado === 'anulada');
+        $facturasPorCobrar = $facturasOperativas
+            ->filter(fn (Factura $factura) => $factura->saldoPago() > 0.009)
+            ->sortBy([
+                ['fecha_emision', 'asc'],
+                ['id', 'asc'],
+            ])
+            ->values();
+        $pagos = Pago::query()
+            ->with('cliente')
+            ->withCount('facturas')
+            ->latest('fecha_pago')
+            ->latest('id')
+            ->paginate(15, pageName: 'pagos');
         $seguimiento = [
             'esperando_fecha' => $facturasOperativas
                 ->filter(fn (Factura $factura) => $factura->saldoPago() > 0)
@@ -101,7 +109,9 @@ class PagoController extends Controller
         ]);
 
         return view('pagos.index', [
-            'facturas' => $facturas,
+            'facturasPorCobrar' => $facturasPorCobrar,
+            'pagos' => $pagos,
+            'mediosPago' => self::MEDIOS_PAGO,
             'metricas' => [
                 'cobrado_mes' => (float) Pago::query()
                     ->where('estado', 'registrado')

@@ -13,8 +13,6 @@
         while (count($asignaciones) < 2) {
             $asignaciones[] = ['factura_id' => null, 'monto_asignado' => null];
         }
-        $segundaAsignacionVisible = filled($asignaciones[1]['factura_id'] ?? null)
-            || filled($asignaciones[1]['monto_asignado'] ?? null);
         $montoTotalInicial = old('monto_total', $facturaSeleccionada ? max($facturaSeleccionada->saldoPago(), 0) : null);
     @endphp
 
@@ -22,7 +20,7 @@
         <x-ui.page-header
             eyebrow="Comercial · Pagos"
             title="Registrar pago"
-            description="Registra un ingreso y aplícalo a su factura. Si corresponde, puedes distribuirlo entre dos facturas."
+            description="Registra un ingreso y distribúyelo entre una o varias facturas de la misma organización y moneda."
         >
             <x-slot:actions>
                 <x-ui.button :href="route('pagos.index')" variant="outline">Volver a pagos</x-ui.button>
@@ -83,11 +81,13 @@
                         <div class="payment-form-error">{{ $message }}</div>
                     @enderror
 
-                    @foreach ([0, 1] as $index)
+                    @foreach (array_keys($asignaciones) as $index)
                         @php
                             $facturaId = (int) ($asignaciones[$index]['factura_id'] ?? 0);
                             $facturaActiva = $facturas->firstWhere('id', $facturaId);
-                            $visible = $index === 0 || $segundaAsignacionVisible;
+                            $visible = $index === 0
+                                || filled($asignaciones[$index]['factura_id'] ?? null)
+                                || filled($asignaciones[$index]['monto_asignado'] ?? null);
                         @endphp
 
                         <div
@@ -98,7 +98,7 @@
                         >
                             <div class="payment-allocation__heading">
                                 <div>
-                                    <strong>{{ $index === 0 ? 'Factura vinculada' : 'Segunda factura' }}</strong>
+                                    <strong>{{ $index === 0 ? 'Factura vinculada' : 'Factura adicional' }}</strong>
                                     @if ($index === 1)
                                         <small>Usa esta opción solo si el mismo pago cubre más de una factura.</small>
                                     @endif
@@ -230,11 +230,10 @@
                             variant="secondary"
                             size="small"
                             data-payment-add-allocation
-                            :hidden="$segundaAsignacionVisible"
                         >
-                            <x-ui.icon name="plus" size="15" /> Distribuir también en otra factura
+                            <x-ui.icon name="plus" size="15" /> Agregar otra factura
                         </x-ui.button>
-                        <small>Úsalo solo cuando el mismo ingreso cubra dos facturas.</small>
+                        <small>Puedes agregar las facturas necesarias para distribuir el mismo ingreso.</small>
                     </div>
                 </section>
 

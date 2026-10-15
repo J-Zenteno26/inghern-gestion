@@ -142,10 +142,12 @@ class RegistrarPagoTest extends TestCase
         [$user, $ordenCompra] = $this->crearContexto();
         $primeraFactura = $this->crearFactura($ordenCompra, $user, 'F-MISMO-CLIENTE-1', 100000);
         $segundaFactura = $this->crearFactura($ordenCompra, $user, 'F-MISMO-CLIENTE-2', 100000);
+        $terceraFactura = $this->crearFactura($ordenCompra, $user, 'F-MISMO-CLIENTE-3', 100000);
 
-        $response = $this->registrarPago($user, 100000, [
-            ['factura_id' => $primeraFactura->id, 'monto_asignado' => 50000],
-            ['factura_id' => $segundaFactura->id, 'monto_asignado' => 50000],
+        $response = $this->registrarPago($user, 120000, [
+            ['factura_id' => $primeraFactura->id, 'monto_asignado' => 40000],
+            ['factura_id' => $segundaFactura->id, 'monto_asignado' => 40000],
+            ['factura_id' => $terceraFactura->id, 'monto_asignado' => 40000],
         ]);
 
         $pago = Pago::query()->sole();
@@ -153,7 +155,7 @@ class RegistrarPagoTest extends TestCase
         $this->assertSame($ordenCompra->cliente_id, $pago->cliente_id);
         $this->assertSame('CLP', $pago->moneda);
         $this->assertSame('registrado', $pago->estado);
-        $this->assertCount(2, $pago->facturas);
+        $this->assertCount(3, $pago->facturas);
     }
 
     public function test_rejects_allocations_between_invoices_from_different_clients(): void

@@ -14,7 +14,7 @@
             };
         };
         $toneForStatus = static fn (string $status) => match ($status) {
-            'pagada' => 'success',
+            'pagada', 'registrado' => 'success',
             'pago_parcial' => 'info',
             'sobrepagada' => 'warning',
             'anulada' => 'danger',
@@ -175,11 +175,19 @@
         </div>
 
         <x-ui.panel flush class="payment-index-panel">
-            @if ($facturas->isEmpty())
+            <x-slot:title>
+                <div class="payment-panel-heading">
+                    <x-ui.icon name="receipt" size="17" />
+                    <h2 class="ui-panel__title">Por cobrar</h2>
+                </div>
+            </x-slot:title>
+            <x-slot:subtitle>Facturas activas con saldo pendiente que todavía admiten pagos</x-slot:subtitle>
+
+            @if ($facturasPorCobrar->isEmpty())
                 <x-ui.empty-state
                     icon="banknote"
-                    title="No hay facturas para gestionar"
-                    description="Registra facturas antes de comenzar a ingresar pagos."
+                    title="No hay facturas por cobrar"
+                    description="Las facturas pagadas, anuladas o sin saldo pendiente no aparecen en este bloque."
                 />
             @else
                 <div class="ui-table-wrap">
@@ -193,12 +201,13 @@
                                 <th class="numeric"><span class="payment-table-heading payment-table-heading--numeric"><x-ui.icon name="circle-dollar-sign" size="14" />Pagado</span></th>
                                 <th><span class="payment-table-heading"><x-ui.icon name="chart-no-axes-column-increasing" size="14" />Avance</span></th>
                                 <th class="numeric"><span class="payment-table-heading payment-table-heading--numeric"><x-ui.icon name="calculator" size="14" />Saldo</span></th>
+                                <th>Moneda</th>
                                 <th><span class="payment-table-heading"><x-ui.icon name="circle-check" size="14" />Estado</span></th>
                                 <th><span class="payment-table-heading"><x-ui.icon name="arrow" size="14" />Acción</span></th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($facturas as $factura)
+                            @foreach ($facturasPorCobrar as $factura)
                                 @php
                                     $estadoPago = $factura->estadoPago();
                                     $totalPagado = $factura->totalPagado();
@@ -230,23 +239,76 @@
                                     <td class="numeric {{ $saldo < 0 ? 'payment-balance--overpaid' : '' }}">
                                         {{ $formatMoney($saldo, $factura->moneda) }}
                                     </td>
+                                    <td>{{ $factura->moneda }}</td>
                                     <td><x-ui.badge :status="$estadoPago" :tone="$toneForStatus($estadoPago)" /></td>
                                     <td>
-                                        @if (in_array($estadoPago, ['pendiente', 'pago_parcial'], true))
-                                            <x-ui.button :href="route('pagos.create', ['factura' => $factura->id])" variant="ghost" size="small">
-                                                Registrar pago
-                                                <x-ui.icon name="arrow" size="15" />
-                                            </x-ui.button>
-                                        @else
-                                            <span class="muted">Sin acciones</span>
-                                        @endif
+                                        <x-ui.button :href="route('pagos.create', ['factura' => $factura->id])" variant="ghost" size="small">
+                                            Registrar pago
+                                            <x-ui.icon name="arrow" size="15" />
+                                        </x-ui.button>
                                     </td>
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
-                <div class="pagination">{{ $facturas->links() }}</div>
+            @endif
+        </x-ui.panel>
+
+        <x-ui.panel flush class="payment-index-panel">
+            <x-slot:title>
+                <div class="payment-panel-heading">
+                    <x-ui.icon name="banknote" size="17" />
+                    <h2 class="ui-panel__title">Pagos registrados</h2>
+                </div>
+            </x-slot:title>
+            <x-slot:subtitle>Historial completo de movimientos, incluidos los pagos anulados</x-slot:subtitle>
+
+            @if ($pagos->isEmpty())
+                <x-ui.empty-state
+                    icon="banknote"
+                    title="No hay pagos registrados"
+                    description="Los pagos aparecerán aquí cuando se registre el primer ingreso."
+                />
+            @else
+                <div class="ui-table-wrap">
+                    <table class="ui-table payment-index-table">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Organización</th>
+                                <th>Fecha</th>
+                                <th class="numeric">Monto total</th>
+                                <th>Moneda</th>
+                                <th>Medio de pago</th>
+                                <th>Estado</th>
+                                <th class="numeric">Facturas</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($pagos as $pago)
+                                <tr>
+                                    <td><span class="table-primary">{{ $pago->codigo }}</span></td>
+                                    <td>{{ $pago->cliente->nombre_display }}</td>
+                                    <td>{{ $pago->fecha_pago->format('d/m/Y') }}</td>
+                                    <td class="numeric payment-money">{{ $formatMoney($pago->monto_total, $pago->moneda) }}</td>
+                                    <td>{{ $pago->moneda }}</td>
+                                    <td>{{ $mediosPago[$pago->medio_pago] ?? ucfirst($pago->medio_pago) }}</td>
+                                    <td><x-ui.badge :status="$pago->estado" :tone="$toneForStatus($pago->estado)" /></td>
+                                    <td class="numeric">{{ number_format($pago->facturas_count, 0, ',', '.') }}</td>
+                                    <td>
+                                        <x-ui.button :href="route('pagos.show', $pago)" variant="ghost" size="small">
+                                            Ver detalle
+                                            <x-ui.icon name="arrow" size="15" />
+                                        </x-ui.button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination">{{ $pagos->links() }}</div>
             @endif
         </x-ui.panel>
     </div>

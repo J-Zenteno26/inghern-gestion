@@ -6,7 +6,7 @@ export function initPayments() {
     const percentFormat = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 2 });
     const totalInput = form.querySelector('[data-payment-total]');
     const totalDisplay = form.querySelector('[data-payment-total-display]');
-    const allocationElements = [...form.querySelectorAll('[data-payment-allocation]')];
+    let allocationElements = [...form.querySelectorAll('[data-payment-allocation]')];
     const addAllocationButton = form.querySelector('[data-payment-add-allocation]');
 
     const money = (value, currency = 'CLP') => currency + ' $' + numberFormat.format(Number(value || 0));
@@ -45,6 +45,38 @@ export function initPayments() {
         allocation.hidden = !enabled;
         allocation.querySelectorAll('input, button').forEach((control) => {
             control.disabled = !enabled;
+        });
+    }
+
+    function resetAllocation(allocation) {
+        const search = allocation.querySelector('[data-payment-invoice-search]');
+        const invoiceId = allocation.querySelector('[data-payment-invoice-id]');
+        if (search) search.value = '';
+        if (invoiceId) invoiceId.value = '';
+        setMoneyInput(
+            allocation.querySelector('[data-payment-allocation-display]'),
+            allocation.querySelector('[data-payment-allocation-amount]'),
+            0,
+        );
+        setPercentInput(allocation.querySelector('[data-payment-allocation-percent]'), 0);
+        allocation.querySelectorAll('[data-payment-invoice-option]').forEach((option) => {
+            option.hidden = false;
+            option.setAttribute('aria-selected', 'false');
+        });
+    }
+
+    function reindexAllocations() {
+        allocationElements.forEach((allocation, index) => {
+            allocation.dataset.allocationIndex = String(index);
+            allocation.querySelectorAll('[name]').forEach((control) => {
+                control.name = control.name.replace(/asignaciones\[\d+\]/, `asignaciones[${index}]`);
+            });
+
+            const listId = `payment-invoice-options-${index}`;
+            const search = allocation.querySelector('[data-payment-invoice-search]');
+            const list = allocation.querySelector('[data-payment-invoice-list]');
+            search?.setAttribute('aria-controls', listId);
+            if (list) list.id = listId;
         });
     }
 
@@ -347,34 +379,55 @@ export function initPayments() {
 
     if (totalInput?.value) setMoneyInput(totalDisplay, totalInput, totalInput.value);
 
-    addAllocationButton?.addEventListener('click', () => {
-        const second = allocationElements[1];
-        if (!second) return;
-        setAllocationEnabled(second, true);
-        addAllocationButton.hidden = true;
-        second.querySelector('[data-payment-invoice-search]')?.focus();
-        updateSummary();
-    });
+    function removeAllocation(allocation) {
+        resetAllocation(allocation);
 
-    allocationElements[1]?.querySelector('[data-payment-remove-allocation]')?.addEventListener('click', () => {
-        const second = allocationElements[1];
-        second.querySelector('[data-payment-invoice-search]').value = '';
-        second.querySelector('[data-payment-invoice-id]').value = '';
-        setMoneyInput(
-            second.querySelector('[data-payment-allocation-display]'),
-            second.querySelector('[data-payment-allocation-amount]'),
-            0,
-        );
-        setPercentInput(second.querySelector('[data-payment-allocation-percent]'), 0);
-        setAllocationEnabled(second, false);
-        if (addAllocationButton) addAllocationButton.hidden = false;
-
-        const first = allocationElements[0];
-        if (first && selectedOption(first)) {
-            setMoneyInput(totalDisplay, totalInput, allocationAmount(first));
-            updateAllocationPercentage(first);
+        if (allocationElements.length === 2 && allocation === allocationElements[1]) {
+            setAllocationEnabled(allocation, false);
+        } else {
+            allocation.remove();
+            allocationElements = allocationElements.filter((item) => item !== allocation);
+            reindexAllocations();
         }
 
+        const active = activeAllocations();
+        if (active.length === 1 && selectedOption(active[0])) {
+            setMoneyInput(totalDisplay, totalInput, allocationAmount(active[0]));
+            updateAllocationPercentage(active[0]);
+        }
+
+        updateSummary();
+    }
+
+    function bindRemoveAllocation(allocation) {
+        allocation.querySelector('[data-payment-remove-allocation]')?.addEventListener('click', () => {
+            removeAllocation(allocation);
+        });
+    }
+
+    allocationElements.slice(1).forEach(bindRemoveAllocation);
+
+    addAllocationButton?.addEventListener('click', () => {
+        let allocation = allocationElements.find((item) => item.hidden);
+
+        if (!allocation) {
+            const source = allocationElements[1];
+            if (!source) return;
+
+            allocation = source.cloneNode(true);
+            allocation.querySelectorAll('.ui-field__error').forEach((error) => error.remove());
+            addAllocationButton.closest('.payment-allocation-add')?.before(allocation);
+            allocationElements.push(allocation);
+            reindexAllocations();
+            resetAllocation(allocation);
+            setupCombobox(allocation);
+            bindRemoveAllocation(allocation);
+        } else {
+            resetAllocation(allocation);
+        }
+
+        setAllocationEnabled(allocation, true);
+        allocation.querySelector('[data-payment-invoice-search]')?.focus();
         updateSummary();
     });
 

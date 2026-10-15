@@ -59,11 +59,17 @@
                         <h2 class="ui-panel__title">Facturas asociadas</h2>
                     </div>
                 </x-slot:title>
+                @if ($pago->estado === 'anulado')
+                    <p class="muted">Estas asignaciones se conservan como trazabilidad histórica y no cuentan como dinero actualmente cobrado.</p>
+                @endif
                 <div class="payment-assignment-list">
                     @foreach ($pago->facturas as $factura)
                         <div>
                             <span><strong>{{ $factura->folio }}</strong><small>{{ $factura->cliente->nombre_display }}</small></span>
-                            <strong class="payment-money">{{ $formatMoney($factura->pivot->monto_asignado, $factura->moneda) }}</strong>
+                            <span>
+                                <strong class="payment-money">{{ $formatMoney($factura->pivot->monto_asignado, $factura->moneda) }}</strong>
+                                <x-ui.button :href="route('facturas.show', $factura)" variant="ghost" size="small">Ver factura</x-ui.button>
+                            </span>
                         </div>
                     @endforeach
                 </div>

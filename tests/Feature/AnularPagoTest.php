@@ -45,6 +45,11 @@ class AnularPagoTest extends TestCase
             ->assertSeeText('Motivo de anulación')
             ->assertSeeText('Pago informado dos veces.')
             ->assertDontSeeText('Confirmo que deseo anular este pago');
+        $this->actingAs($user)
+            ->get(route('pagos.index'))
+            ->assertSeeText($pago->codigo)
+            ->assertSeeText('Cliente Anulación Pago')
+            ->assertSeeText('anulado');
     }
 
     public function test_cancelled_payment_cannot_be_cancelled_again(): void
