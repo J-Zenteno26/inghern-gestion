@@ -77,7 +77,7 @@ class OrdenCompra extends Model
 
     public function saldoFacturacion(): float
     {
-        return (float) $this->monto - $this->totalFacturado();
+        return max((float) $this->monto - $this->totalFacturado(), 0);
     }
 
     public function porcentajeFacturado(): float
@@ -99,8 +99,7 @@ class OrdenCompra extends Model
         return match (true) {
             $totalFacturado <= 0 => 'sin_facturar',
             $totalFacturado < $monto - 0.005 => 'facturacion_parcial',
-            abs($totalFacturado - $monto) <= 0.005 => 'facturacion_completa',
-            default => 'sobrefacturada',
+            default => 'facturacion_completa',
         };
     }
 }

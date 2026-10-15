@@ -128,9 +128,16 @@ class FacturaTest extends TestCase
             ->assertSeeText('CLP $292.740')
             ->assertSeeText('80%')
             ->assertSeeText('facturacion parcial');
+        $this->actingAs($user)
+            ->get(route('facturas.index'))
+            ->assertViewHas(
+                'metricas',
+                fn (array $metricas): bool => $metricas['saldo_por_facturar'] === 292740.0
+                    && $metricas['oc_parciales'] === 1,
+            );
     }
 
-    public function test_purchase_order_reports_complete_and_overbilled_states_from_invoice_totals(): void
+    public function test_purchase_order_reports_complete_state_and_zero_balance_when_invoice_totals_reach_or_exceed_its_amount(): void
     {
         [$user, , $ordenCompra] = $this->crearContexto();
         $ordenCompra->update(['monto' => 1463700]);
@@ -146,11 +153,11 @@ class FacturaTest extends TestCase
         $this->registrarFactura($user, $ordenCompra, 'F-EXCEDENTE', 100000);
         $ordenCompra->refresh()->load('facturas');
 
-        $this->assertSame('sobrefacturada', $ordenCompra->estadoFacturacion());
-        $this->assertSame(-119000.0, $ordenCompra->saldoFacturacion());
+        $this->assertSame('facturacion_completa', $ordenCompra->estadoFacturacion());
+        $this->assertSame(0.0, $ordenCompra->saldoFacturacion());
     }
 
-    public function test_invoice_total_over_purchase_order_amount_is_allowed_and_shows_warning(): void
+    public function test_invoice_total_over_purchase_order_amount_is_allowed_and_keeps_complete_coverage(): void
     {
         [$user, $cotizacion, $ordenCompra] = $this->crearContexto();
 
@@ -160,8 +167,9 @@ class FacturaTest extends TestCase
         $this->actingAs($user)
             ->get(route('cotizaciones.show', $cotizacion))
             ->assertOk()
-            ->assertSeeText('El total facturado sobrepasa el monto de la OC en CLP $309.000.')
-            ->assertSeeText('CLP $-309.000');
+            ->assertSeeText('CLP $0')
+            ->assertSeeText('facturacion completa')
+            ->assertDontSeeText('El total facturado sobrepasa el monto de la OC');
     }
 
     public function test_invoice_folio_cannot_be_repeated_for_the_same_organization(): void

@@ -71,7 +71,7 @@ class FacturaController extends Controller
                 ->whereBetween('fecha_emision', [$inicioMes, $finMes])
                 ->sum('monto_neto'),
             'saldo_por_facturar' => $resumenOrdenes->sum(
-                fn (OrdenCompra $ordenCompra) => max($ordenCompra->saldoFacturacion(), 0),
+                fn (OrdenCompra $ordenCompra) => $ordenCompra->saldoFacturacion(),
             ),
             'emitidas_mes' => Factura::query()
                 ->where('estado', '!=', 'anulada')

@@ -45,15 +45,15 @@ class OrdenCompraTest extends TestCase
         $this->assertSame('facturacion_completa', $ordenCompra->estadoFacturacion());
     }
 
-    public function test_reports_overbilling_when_valid_totals_exceed_purchase_order(): void
+    public function test_reports_complete_billing_with_zero_balance_when_valid_totals_exceed_purchase_order(): void
     {
         $ordenCompra = $this->ordenCompraConFacturas(1000000, [
             ['total' => 1100000, 'estado' => 'emitida'],
         ]);
 
-        $this->assertSame(-100000.0, $ordenCompra->saldoFacturacion());
+        $this->assertSame(0.0, $ordenCompra->saldoFacturacion());
         $this->assertSame(110.0, $ordenCompra->porcentajeFacturado());
-        $this->assertSame('sobrefacturada', $ordenCompra->estadoFacturacion());
+        $this->assertSame('facturacion_completa', $ordenCompra->estadoFacturacion());
     }
 
     /**
