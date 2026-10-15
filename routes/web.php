@@ -80,6 +80,14 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
         [FacturaController::class, 'actualizarFechaPago'],
     )->name('facturas.fecha-pago-informada.update');
     Route::patch(
+        '/facturas/{factura}/anular',
+        [FacturaController::class, 'anular'],
+    )->name('facturas.anular');
+    Route::patch(
+        '/pagos/{pago}/anular',
+        [PagoController::class, 'anular'],
+    )->name('pagos.anular');
+    Route::patch(
         '/cotizaciones/{cotizacion}/planta',
         [CotizacionController::class, 'updatePlanta'],
     )->name('cotizaciones.planta.update');

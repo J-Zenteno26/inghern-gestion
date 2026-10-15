@@ -26,6 +26,18 @@ class RegistrarPago
     public function ejecutar(array $datos, int $usuarioId): Pago
     {
         return DB::transaction(function () use ($datos, $usuarioId) {
+            $montoTotal = round((float) $datos['monto_total'], 2);
+            $montoDistribuido = round(
+                (float) collect($datos['asignaciones'])->sum('monto_asignado'),
+                2,
+            );
+
+            if (abs($montoTotal - $montoDistribuido) > 0.009) {
+                throw ValidationException::withMessages([
+                    'asignaciones' => 'La suma de los montos asignados debe coincidir con el monto total del pago.',
+                ]);
+            }
+
             $facturaIds = collect($datos['asignaciones'])
                 ->pluck('factura_id')
                 ->map(fn ($id) => (int) $id)
@@ -44,19 +56,64 @@ class RegistrarPago
                 ]);
             }
 
+            if ($facturas->pluck('moneda')->unique()->count() > 1) {
+                throw ValidationException::withMessages([
+                    'asignaciones' => 'Las facturas seleccionadas deben utilizar la misma moneda.',
+                ]);
+            }
+
+            if ($facturas->pluck('cliente_id')->unique()->count() > 1) {
+                throw ValidationException::withMessages([
+                    'asignaciones' => 'Las facturas seleccionadas deben pertenecer a la misma organización.',
+                ]);
+            }
+
+            $clienteId = (int) $facturas->first()->cliente_id;
+            $moneda = $facturas->first()->moneda;
+
+            $asignacionesValidadas = [];
+
+            foreach ($datos['asignaciones'] as $indice => $asignacion) {
+                $factura = $facturas->get((int) $asignacion['factura_id']);
+                $montoAsignado = round((float) $asignacion['monto_asignado'], 2);
+                $saldoActual = $factura->saldoPago();
+
+                if ($saldoActual <= 0.009) {
+                    throw ValidationException::withMessages([
+                        "asignaciones.{$indice}.monto_asignado" => "La factura {$factura->folio} ya no tiene saldo pendiente disponible.",
+                    ]);
+                }
+
+                if ($montoAsignado > $saldoActual + 0.009) {
+                    $saldoFormateado = number_format($saldoActual, 0, ',', '.');
+
+                    throw ValidationException::withMessages([
+                        "asignaciones.{$indice}.monto_asignado" => "El monto asignado a la factura {$factura->folio} supera su saldo pendiente de {$factura->moneda} \${$saldoFormateado}.",
+                    ]);
+                }
+
+                $asignacionesValidadas[] = [
+                    'factura' => $factura,
+                    'monto_asignado' => $montoAsignado,
+                ];
+            }
+
             $pago = Pago::create([
+                'cliente_id' => $clienteId,
                 'codigo' => $this->codigos->siguiente(Pago::class, 'PAG'),
                 'fecha_pago' => $datos['fecha_pago'],
-                'monto_total' => round((float) $datos['monto_total'], 2),
+                'monto_total' => $montoTotal,
+                'moneda' => $moneda,
                 'medio_pago' => $datos['medio_pago'],
                 'referencia' => $datos['referencia'] ?? null,
                 'observacion' => $datos['observacion'] ?? null,
+                'estado' => 'registrado',
                 'usuario_creador_id' => $usuarioId,
             ]);
 
-            foreach ($datos['asignaciones'] as $asignacion) {
-                $factura = $facturas->get((int) $asignacion['factura_id']);
-                $montoAsignado = round((float) $asignacion['monto_asignado'], 2);
+            foreach ($asignacionesValidadas as $asignacion) {
+                $factura = $asignacion['factura'];
+                $montoAsignado = $asignacion['monto_asignado'];
 
                 $pago->facturas()->attach($factura->id, [
                     'monto_asignado' => $montoAsignado,

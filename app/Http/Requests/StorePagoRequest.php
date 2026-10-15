@@ -73,15 +73,33 @@ class StorePagoRequest extends FormRequest
                     );
                 }
 
-                $monedas = Factura::query()
+                $facturas = Factura::query()
                     ->whereKey(collect($asignaciones)->pluck('factura_id'))
-                    ->pluck('moneda')
-                    ->unique();
+                    ->withSum('pagosRegistrados as total_pagado', 'pago_factura.monto_asignado')
+                    ->get();
+
+                if ($facturas->contains(fn (Factura $factura) => $factura->saldoPago() <= 0.009)) {
+                    $validator->errors()->add(
+                        'asignaciones',
+                        'Una de las facturas seleccionadas ya no tiene saldo pendiente disponible.',
+                    );
+                }
+
+                $monedas = $facturas->pluck('moneda')->unique();
 
                 if ($monedas->count() > 1) {
                     $validator->errors()->add(
                         'asignaciones',
                         'Las facturas seleccionadas deben utilizar la misma moneda.',
+                    );
+                }
+
+                $clientes = $facturas->pluck('cliente_id')->unique();
+
+                if ($clientes->count() > 1) {
+                    $validator->errors()->add(
+                        'asignaciones',
+                        'Las facturas seleccionadas deben pertenecer a la misma organización.',
                     );
                 }
             },

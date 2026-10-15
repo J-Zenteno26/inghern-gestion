@@ -13,6 +13,7 @@ class PagoTest extends TestCase
         float $total,
         float $totalPagado,
         string $estadoFactura,
+        float $saldoEsperado,
         string $estadoEsperado,
     ): void {
         $factura = new Factura;
@@ -23,21 +24,21 @@ class PagoTest extends TestCase
         ]);
 
         $this->assertSame($totalPagado, $factura->totalPagado());
-        $this->assertSame($total - $totalPagado, $factura->saldoPago());
+        $this->assertSame($saldoEsperado, $factura->saldoPago());
         $this->assertSame($estadoEsperado, $factura->estadoPago());
     }
 
     /**
-     * @return array<string, array{float, float, string, string}>
+     * @return array<string, array{float, float, string, float, string}>
      */
     public static function estadosDePago(): array
     {
         return [
-            'pendiente' => [100_000.0, 0.0, 'emitida', 'pendiente'],
-            'pago parcial' => [100_000.0, 35_000.0, 'emitida', 'pago_parcial'],
-            'pagada' => [100_000.0, 100_000.0, 'emitida', 'pagada'],
-            'sobrepagada' => [100_000.0, 110_000.0, 'emitida', 'sobrepagada'],
-            'anulada prevalece' => [100_000.0, 100_000.0, 'anulada', 'anulada'],
+            'pendiente' => [100_000.0, 0.0, 'emitida', 100_000.0, 'pendiente'],
+            'pago parcial' => [100_000.0, 35_000.0, 'emitida', 65_000.0, 'pago_parcial'],
+            'pagada' => [100_000.0, 100_000.0, 'emitida', 0.0, 'pagada'],
+            'sobrepagada' => [100_000.0, 110_000.0, 'emitida', -10_000.0, 'sobrepagada'],
+            'anulada sin pagos' => [100_000.0, 0.0, 'anulada', 0.0, 'anulada'],
         ];
     }
 }

@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Cotizaciones;
 
+use App\Domain\Cotizaciones\AnularPago;
 use App\Domain\Cotizaciones\RegistrarPago;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AnularPagoRequest;
 use App\Http\Requests\StorePagoRequest;
+use App\Models\EventoHistorial;
 use App\Models\Factura;
 use App\Models\Pago;
 use Illuminate\Http\RedirectResponse;
@@ -28,7 +31,7 @@ class PagoController extends Controller
     {
         $resumenFacturas = Factura::query()
             ->with('cliente')
-            ->withSum('pagos as total_pagado', 'pago_factura.monto_asignado')
+            ->withSum('pagosRegistrados as total_pagado', 'pago_factura.monto_asignado')
             ->get([
                 'id',
                 'cliente_id',
@@ -40,7 +43,7 @@ class PagoController extends Controller
             ]);
         $facturas = Factura::query()
             ->with('cliente')
-            ->withSum('pagos as total_pagado', 'pago_factura.monto_asignado')
+            ->withSum('pagosRegistrados as total_pagado', 'pago_factura.monto_asignado')
             ->latest('fecha_emision')
             ->latest('id')
             ->paginate(15);
@@ -50,6 +53,7 @@ class PagoController extends Controller
             ->reject(fn (Factura $factura) => $factura->estado === 'anulada');
         $seguimiento = [
             'esperando_fecha' => $facturasOperativas
+                ->filter(fn (Factura $factura) => $factura->saldoPago() > 0)
                 ->whereNull('fecha_pago_informada_cliente')
                 ->count(),
             'con_fecha' => $facturasOperativas
@@ -74,6 +78,7 @@ class PagoController extends Controller
 
         $inicioGrafico = now()->startOfMonth()->subMonths(11);
         $totalesPorMes = Pago::query()
+            ->where('estado', 'registrado')
             ->where('fecha_pago', '>=', $inicioGrafico)
             ->get(['fecha_pago', 'monto_total'])
             ->groupBy(fn (Pago $pago) => $pago->fecha_pago->format('Y-m'))
@@ -99,6 +104,7 @@ class PagoController extends Controller
             'facturas' => $facturas,
             'metricas' => [
                 'cobrado_mes' => (float) Pago::query()
+                    ->where('estado', 'registrado')
                     ->whereBetween('fecha_pago', [$inicioMes, $finMes])
                     ->sum('monto_total'),
                 'pendiente_cobro' => $resumenFacturas
@@ -120,10 +126,12 @@ class PagoController extends Controller
         $facturas = Factura::query()
             ->where('estado', '!=', 'anulada')
             ->with('cliente')
-            ->withSum('pagos as total_pagado', 'pago_factura.monto_asignado')
+            ->withSum('pagosRegistrados as total_pagado', 'pago_factura.monto_asignado')
             ->latest('fecha_emision')
             ->latest('id')
-            ->get();
+            ->get()
+            ->filter(fn (Factura $factura) => $factura->saldoPago() > 0)
+            ->values();
 
         return view('pagos.create', [
             'facturas' => $facturas,
@@ -149,11 +157,37 @@ class PagoController extends Controller
 
     public function show(Pago $pago): View
     {
-        $pago->load(['usuarioCreador', 'facturas.cliente']);
+        $pago->load(['cliente', 'usuarioCreador', 'facturas.cliente']);
+        $eventoAnulacion = $pago->estado === 'anulado'
+            ? EventoHistorial::query()
+                ->where('registrable_type', Pago::class)
+                ->where('registrable_id', $pago->id)
+                ->where('evento', 'pago_anulado')
+                ->latest('id')
+                ->first()
+            : null;
 
         return view('pagos.show', [
             'pago' => $pago,
             'medioPago' => self::MEDIOS_PAGO[$pago->medio_pago] ?? $pago->medio_pago,
+            'eventoAnulacion' => $eventoAnulacion,
         ]);
+    }
+
+    public function anular(
+        AnularPagoRequest $request,
+        Pago $pago,
+        AnularPago $anularPago,
+    ): RedirectResponse {
+        $anularPago->ejecutar(
+            $pago,
+            $request->string('motivo')->toString(),
+            $request->user()->id,
+        );
+
+        return to_route('pagos.show', $pago)->with(
+            'exito',
+            'Pago anulado correctamente.',
+        );
     }
 }

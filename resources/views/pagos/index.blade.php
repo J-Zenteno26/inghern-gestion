@@ -232,10 +232,14 @@
                                     </td>
                                     <td><x-ui.badge :status="$estadoPago" :tone="$toneForStatus($estadoPago)" /></td>
                                     <td>
-                                        <x-ui.button :href="route('pagos.create', ['factura' => $factura->id])" variant="ghost" size="small">
-                                            Registrar pago
-                                            <x-ui.icon name="arrow" size="15" />
-                                        </x-ui.button>
+                                        @if (in_array($estadoPago, ['pendiente', 'pago_parcial'], true))
+                                            <x-ui.button :href="route('pagos.create', ['factura' => $factura->id])" variant="ghost" size="small">
+                                                Registrar pago
+                                                <x-ui.icon name="arrow" size="15" />
+                                            </x-ui.button>
+                                        @else
+                                            <span class="muted">Sin acciones</span>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

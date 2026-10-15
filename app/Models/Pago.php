@@ -9,12 +9,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Pago extends Model
 {
     protected $fillable = [
+        'cliente_id',
         'codigo',
         'fecha_pago',
         'monto_total',
+        'moneda',
         'medio_pago',
         'referencia',
         'observacion',
+        'estado',
         'usuario_creador_id',
     ];
 
@@ -31,6 +34,11 @@ class Pago extends Model
         return $this->belongsToMany(Factura::class, 'pago_factura')
             ->withPivot('monto_asignado')
             ->withTimestamps();
+    }
+
+    public function cliente(): BelongsTo
+    {
+        return $this->belongsTo(Cliente::class);
     }
 
     public function usuarioCreador(): BelongsTo

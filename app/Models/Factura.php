@@ -63,6 +63,11 @@ class Factura extends Model
             ->withTimestamps();
     }
 
+    public function pagosRegistrados(): BelongsToMany
+    {
+        return $this->pagos()->where('pagos.estado', 'registrado');
+    }
+
     public function operacionesFactoring(): HasMany
     {
         return $this->hasMany(OperacionFactoring::class);
@@ -80,11 +85,15 @@ class Factura extends Model
             return (float) $this->attributes['total_pagado'];
         }
 
-        return (float) $this->pagos()->sum('pago_factura.monto_asignado');
+        return (float) $this->pagosRegistrados()->sum('pago_factura.monto_asignado');
     }
 
     public function saldoPago(): float
     {
+        if ($this->estado === 'anulada') {
+            return 0.0;
+        }
+
         return (float) $this->total - $this->totalPagado();
     }
 

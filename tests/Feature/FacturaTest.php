@@ -7,6 +7,7 @@ use App\Models\Cotizacion;
 use App\Models\EventoHistorial;
 use App\Models\Factura;
 use App\Models\OrdenCompra;
+use App\Models\Pago;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
@@ -248,6 +249,133 @@ class FacturaTest extends TestCase
         $this->assertSame('2026-12-05', $factura->fecha_pago_informada_cliente->toDateString());
         $this->assertSame('2026-11-20', $evento->cambios['fecha_anterior']);
         $this->assertSame('2026-12-05', $evento->cambios['fecha_pago_informada_cliente']);
+    }
+
+    public function test_emitted_invoice_without_payments_can_be_cancelled_with_traceability(): void
+    {
+        [$user, , $ordenCompra] = $this->crearContexto();
+        $this->registrarFactura($user, $ordenCompra, 'F-ANULAR-1', 100000);
+        $factura = Factura::query()->sole();
+        $factura->update(['observacion' => 'Observación original de la factura.']);
+
+        $response = $this->actingAs($user)->patch(
+            route('facturas.anular', $factura),
+            [
+                'motivo' => 'El cliente solicitó reemplazar el documento.',
+                'confirmacion' => '1',
+            ],
+        );
+
+        $factura->refresh();
+        $ordenCompra->refresh()->load('facturas');
+        $evento = EventoHistorial::query()
+            ->where('registrable_type', Factura::class)
+            ->where('registrable_id', $factura->id)
+            ->where('evento', 'factura_anulada')
+            ->sole();
+
+        $response->assertRedirect(route('facturas.show', $factura));
+        $this->assertSame('anulada', $factura->estado);
+        $this->assertSame('Observación original de la factura.', $factura->observacion);
+        $this->assertSame(0.0, $factura->saldoPago());
+        $this->assertSame('anulada', $factura->estadoPago());
+        $this->assertSame(0.0, $ordenCompra->totalFacturado());
+        $this->assertSame($user->id, $evento->user_id);
+        $this->assertSame('emitida', $evento->cambios['estado_anterior']);
+        $this->assertSame('anulada', $evento->cambios['estado_nuevo']);
+        $this->assertSame(
+            'El cliente solicitó reemplazar el documento.',
+            $evento->cambios['motivo'],
+        );
+        $this->actingAs($user)
+            ->get(route('facturas.show', $factura))
+            ->assertSeeText('Motivo de anulación')
+            ->assertSeeText('El cliente solicitó reemplazar el documento.')
+            ->assertSeeText('CLP $0')
+            ->assertDontSeeText('Confirmar anulación');
+    }
+
+    public function test_invoice_cancellation_requires_reason_and_explicit_confirmation(): void
+    {
+        [$user, , $ordenCompra] = $this->crearContexto();
+        $this->registrarFactura($user, $ordenCompra, 'F-ANULAR-2', 100000);
+        $factura = Factura::query()->sole();
+
+        $response = $this->actingAs($user)->patch(
+            route('facturas.anular', $factura),
+            [],
+        );
+
+        $response->assertSessionHasErrors([
+            'motivo' => 'Debes indicar el motivo de la anulación.',
+            'confirmacion' => 'Debes confirmar explícitamente la anulación de la factura.',
+        ]);
+        $this->assertSame('emitida', $factura->refresh()->estado);
+        $this->assertSame(0, EventoHistorial::query()
+            ->where('evento', 'factura_anulada')
+            ->count());
+    }
+
+    public function test_cancelled_invoice_cannot_be_cancelled_again(): void
+    {
+        [$user, , $ordenCompra] = $this->crearContexto();
+        $this->registrarFactura($user, $ordenCompra, 'F-ANULAR-3', 100000);
+        $factura = Factura::query()->sole();
+        $factura->update(['estado' => 'anulada']);
+
+        $response = $this->actingAs($user)->patch(
+            route('facturas.anular', $factura),
+            [
+                'motivo' => 'Segundo intento de anulación.',
+                'confirmacion' => '1',
+            ],
+        );
+
+        $response->assertSessionHasErrors([
+            'factura' => 'La factura ya se encuentra anulada.',
+        ]);
+        $this->assertSame('anulada', $factura->refresh()->estado);
+        $this->assertSame(0, EventoHistorial::query()
+            ->where('evento', 'factura_anulada')
+            ->count());
+    }
+
+    public function test_invoice_with_assigned_payments_cannot_be_cancelled(): void
+    {
+        [$user, , $ordenCompra] = $this->crearContexto();
+        $this->registrarFactura($user, $ordenCompra, 'F-ANULAR-4', 100000);
+        $factura = Factura::query()->sole();
+        $pago = Pago::create([
+            'cliente_id' => $factura->cliente_id,
+            'codigo' => 'PAG-ANULACION',
+            'fecha_pago' => '2026-10-07',
+            'monto_total' => 50000,
+            'moneda' => $factura->moneda,
+            'medio_pago' => 'transferencia',
+            'estado' => 'registrado',
+            'usuario_creador_id' => $user->id,
+        ]);
+        $pago->facturas()->attach($factura->id, ['monto_asignado' => 50000]);
+
+        $response = $this->actingAs($user)->patch(
+            route('facturas.anular', $factura),
+            [
+                'motivo' => 'El cliente solicitó anularla.',
+                'confirmacion' => '1',
+            ],
+        );
+
+        $response->assertSessionHasErrors([
+            'factura' => 'La factura tiene pagos asignados. Primero debes resolver o reasignar esos pagos.',
+        ]);
+        $this->assertSame('emitida', $factura->refresh()->estado);
+        $this->assertSame(0, EventoHistorial::query()
+            ->where('evento', 'factura_anulada')
+            ->count());
+        $this->actingAs($user)
+            ->get(route('facturas.show', $factura))
+            ->assertSeeText('Anulación bloqueada')
+            ->assertSeeText('Primero debes resolver o reasignar esos pagos antes de anularla.');
     }
 
     /**

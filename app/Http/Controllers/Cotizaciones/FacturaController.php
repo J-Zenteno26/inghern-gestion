@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Cotizaciones;
 
+use App\Domain\Cotizaciones\AnularFactura;
 use App\Domain\Cotizaciones\RegistrarFactura;
 use App\Domain\Cotizaciones\RegistrarFechaPagoCliente;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AnularFacturaRequest;
 use App\Http\Requests\StoreFacturaRequest;
 use App\Models\Cliente;
+use App\Models\EventoHistorial;
 use App\Models\Factura;
 use App\Models\OrdenCompra;
 use App\Models\Planta;
@@ -113,7 +116,7 @@ class FacturaController extends Controller
                         'total',
                     ),
             ])
-            ->withSum('pagos as total_pagado', 'pago_factura.monto_asignado')
+            ->withSum('pagosRegistrados as total_pagado', 'pago_factura.monto_asignado')
             ->when(
                 $buscar,
                 fn ($query) => $query->where(
@@ -218,9 +221,38 @@ class FacturaController extends Controller
     public function show(Factura $factura): View
     {
         $factura->load(['cliente', 'ordenCompra.cotizacion']);
-        $factura->loadSum('pagos as total_pagado', 'pago_factura.monto_asignado');
+        $factura->loadSum('pagosRegistrados as total_pagado', 'pago_factura.monto_asignado');
+        $factura->loadCount('pagos');
+        $eventoAnulacion = $factura->estado === 'anulada'
+            ? EventoHistorial::query()
+                ->where('registrable_type', Factura::class)
+                ->where('registrable_id', $factura->id)
+                ->where('evento', 'factura_anulada')
+                ->latest('id')
+                ->first()
+            : null;
 
-        return view('facturas.show', ['factura' => $factura]);
+        return view('facturas.show', [
+            'factura' => $factura,
+            'eventoAnulacion' => $eventoAnulacion,
+        ]);
+    }
+
+    public function anular(
+        AnularFacturaRequest $request,
+        Factura $factura,
+        AnularFactura $anularFactura,
+    ): RedirectResponse {
+        $anularFactura->ejecutar(
+            $factura,
+            $request->string('motivo')->toString(),
+            $request->user()->id,
+        );
+
+        return to_route('facturas.show', $factura)->with(
+            'exito',
+            'Factura anulada correctamente.',
+        );
     }
 
     public function actualizarFechaPago(
