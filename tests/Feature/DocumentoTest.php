@@ -187,6 +187,24 @@ class DocumentoTest extends TestCase
         $response->assertDownload('contrato.pdf');
     }
 
+    public function test_pdf_preview_streams_the_private_file_inline_through_storage(): void
+    {
+        Storage::fake('documentos');
+        [$user, $cliente] = $this->createDocumentContext();
+        $documento = $this->createStoredDocument($user, $cliente);
+
+        $response = $this->actingAs($user)->get(route(
+            'biblioteca.documentos.preview',
+            [$cliente, $documento, 'contenido' => 1],
+        ));
+
+        $response->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeaderContains('Content-Disposition', 'inline')
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertStreamedContent('%PDF-1.4');
+    }
+
     public function test_document_from_another_organization_cannot_be_downloaded(): void
     {
         Storage::fake('documentos');

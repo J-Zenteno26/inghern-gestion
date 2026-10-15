@@ -16,6 +16,47 @@ final class XlsxPreviewReader
     public const MAX_COLUMNS = 50;
 
     /**
+     * @param  resource  $stream
+     * @return array{
+     *     sheets: array<int, string>,
+     *     selected_sheet: int,
+     *     selected_name: string,
+     *     rows: array<int, array{number: int, cells: array<int, string>}>,
+     *     visible_columns: int,
+     *     total_rows: int,
+     *     total_columns: int,
+     *     limited: bool
+     * }
+     */
+    public function readStream(mixed $stream, int $selectedSheet = 0): array
+    {
+        if (! is_resource($stream)) {
+            throw new RuntimeException('No fue posible leer el stream del archivo XLSX.');
+        }
+
+        $temporary = tmpfile();
+        if ($temporary === false) {
+            throw new RuntimeException('No fue posible crear el archivo temporal para previsualizar XLSX.');
+        }
+
+        try {
+            if (stream_copy_to_stream($stream, $temporary) === false || ! fflush($temporary)) {
+                throw new RuntimeException('No fue posible copiar el archivo XLSX al almacenamiento temporal.');
+            }
+
+            $metadata = stream_get_meta_data($temporary);
+            $temporaryPath = $metadata['uri'] ?? null;
+            if (! is_string($temporaryPath) || $temporaryPath === '') {
+                throw new RuntimeException('No fue posible resolver la ruta temporal del archivo XLSX.');
+            }
+
+            return $this->read($temporaryPath, $selectedSheet);
+        } finally {
+            fclose($temporary);
+        }
+    }
+
+    /**
      * @return array{
      *     sheets: array<int, string>,
      *     selected_sheet: int,

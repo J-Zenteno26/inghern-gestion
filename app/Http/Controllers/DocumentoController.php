@@ -23,7 +23,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use RuntimeException;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
@@ -267,7 +266,7 @@ class DocumentoController extends Controller
         Cliente $cliente,
         Documento $documento,
         XlsxPreviewReader $xlsxPreviewReader,
-    ): View|BinaryFileResponse {
+    ): View|StreamedResponse {
         $this->asegurarOrganizacion($cliente, $documento);
 
         $extension = Str::lower($documento->extension);
@@ -275,8 +274,6 @@ class DocumentoController extends Controller
 
         $disk = Storage::disk('documentos');
         $archivoExiste = $disk->exists($documento->ruta_storage);
-        $rutaFisica = $archivoExiste ? $disk->path($documento->ruta_storage) : null;
-        $archivoExiste = $rutaFisica !== null && is_readable($rutaFisica);
 
         if ($request->boolean('contenido')) {
             abort_unless($archivoExiste && in_array($extension, ['pdf', 'jpg', 'jpeg', 'png'], true), 404);
@@ -286,17 +283,11 @@ class DocumentoController extends Controller
                 'jpg', 'jpeg' => 'image/jpeg',
                 'png' => 'image/png',
             };
-            $response = response()->file($rutaFisica, [
+
+            return $disk->response($documento->ruta_storage, $documento->nombre_original, [
                 'Content-Type' => $mimeType,
                 'X-Content-Type-Options' => 'nosniff',
-            ]);
-            $response->setContentDisposition(
-                'inline',
-                $documento->nombre_original,
-                (Str::slug(pathinfo($documento->nombre_original, PATHINFO_FILENAME)) ?: 'documento').'.'.$extension,
-            );
-
-            return $response;
+            ], 'inline');
         }
 
         $xlsxPreview = null;
@@ -306,11 +297,21 @@ class DocumentoController extends Controller
 
         if ($extension === 'xlsx' && $archivoExiste) {
             try {
-                $xlsxPreview = $xlsxPreviewReader->read(
-                    $rutaFisica,
-                    max(0, $request->integer('hoja')),
-                );
-            } catch (Throwable) {
+                $stream = $disk->readStream($documento->ruta_storage);
+                if ($stream === false) {
+                    throw new RuntimeException('No fue posible leer el archivo XLSX almacenado.');
+                }
+
+                try {
+                    $xlsxPreview = $xlsxPreviewReader->readStream(
+                        $stream,
+                        max(0, $request->integer('hoja')),
+                    );
+                } finally {
+                    fclose($stream);
+                }
+            } catch (Throwable $throwable) {
+                report($throwable);
                 $previewError = 'No fue posible generar la vista previa de este archivo. Puedes descargar el original.';
             }
         }
